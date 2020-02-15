@@ -34,3 +34,6 @@ pip-delete-this-directory.txt
 
 # PyCharm stuff
 .idea/
+
+# Venv
+venv/
