@@ -1,14 +1,13 @@
+__all__ = ["awk_file", "extract_line_value"]
 
-__all__ = ['awk_file', 'extract_line_value']
-
-from pyparsing import  (OneOrMore, SkipTo, Suppress)
+from pyparsing import OneOrMore, SkipTo, Suppress
 from qmworks.parsers.parser import parse_file
 
 import os
 import subprocess
 
 
-def awk_file(filename, plams_dir=None, script='', progfile=None, **kwargs):
+def awk_file(filename, plams_dir=None, script="", progfile=None, **kwargs):
     """awk_file(filename, script='', progfile=None, **kwargs)
     Execute an AWK script on a file given by *filename*.
 
@@ -24,20 +23,20 @@ def awk_file(filename, plams_dir=None, script='', progfile=None, **kwargs):
 
     Returned value is a list of lines (strings). See ``man awk`` for details.
     """
-    cmd = ['awk']
+    cmd = ["awk"]
     for k, v in kwargs.items():
-        cmd += ['-v', '%s=%s' % (k, v)]
+        cmd += ["-v", "%s=%s" % (k, v)]
     if progfile:
         if os.path.isfile(progfile):
-            cmd += ['-f', progfile]
+            cmd += ["-f", progfile]
         else:
-            raise FileNotFoundError('File %s not present' % progfile)
+            raise FileNotFoundError("File %s not present" % progfile)
     else:
         cmd += [script]
 
     new_cmd = cmd + [filename]
-    ret = subprocess.check_output(new_cmd, cwd=plams_dir).decode('utf-8').split('\n')
-    if ret[-1] == '':
+    ret = subprocess.check_output(new_cmd, cwd=plams_dir).decode("utf-8").split("\n")
+    if ret[-1] == "":
         ret = ret[:-1]
     result = []
     for i in ret:
@@ -53,6 +52,7 @@ def awk_file(filename, plams_dir=None, script='', progfile=None, **kwargs):
         result = result[0]
     return result
 
+
 def extract_line_value(file_name, pattern=None, pos=0):
     """
     Get a field record from a file.
@@ -61,7 +61,7 @@ def extract_line_value(file_name, pattern=None, pos=0):
 
     :returns: value at position `pos` in the last found line, containing pattern.
     """
-    parse_Line = OneOrMore(Suppress(SkipTo(pattern)) + SkipTo('\n'))
+    parse_Line = OneOrMore(Suppress(SkipTo(pattern)) + SkipTo("\n"))
     properties = parse_file(parse_Line, file_name).asList()
     last_line = properties[-1].split()
 

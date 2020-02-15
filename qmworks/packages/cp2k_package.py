@@ -1,17 +1,30 @@
 # =======>  Standard and third party Python Libraries <======
 from warnings import warn
-#import plams
+
+# import plams
 from qmworks import plams
 
 # ==================> Internal modules <====================
-from qmworks.packages.packages import (Package, package_properties, Result)
+from qmworks.packages.packages import Package, package_properties, Result
 from qmworks.settings import Settings
 
 # ====================================<>=======================================
-charge_dict = {'H': 1, 'C': 4, 'N': 5, 'O': 6, 'S': 6, 'Cl': 7,
-               'Se': 6, 'Cd': 12, 'Pb': 4, 'Br': 7, 'Cs': 9, 'Si': 4}
+charge_dict = {
+    "H": 1,
+    "C": 4,
+    "N": 5,
+    "O": 6,
+    "S": 6,
+    "Cl": 7,
+    "Se": 6,
+    "Cd": 12,
+    "Pb": 4,
+    "Br": 7,
+    "Cs": 9,
+    "Si": 4,
+}
 # ======================================<>====================================
-__all__ = ['cp2k']
+__all__ = ["cp2k"]
 
 
 class CP2K(Package):
@@ -22,16 +35,16 @@ class CP2K(Package):
     This class is not intended to be called directly by the user, instead the
     **cp2k** function should be called.
     """
+
     def __init__(self):
         super(CP2K, self).__init__("cp2k")
-        self.generic_dict_file = 'generic2CP2K.json'
+        self.generic_dict_file = "generic2CP2K.json"
 
     def prerun(self):
         pass
 
     @staticmethod
-    def run_job(settings, mol, job_name='cp2k_job',
-                work_dir=None, **kwargs):
+    def run_job(settings, mol, job_name="cp2k_job", work_dir=None, **kwargs):
         """
         Call the Cp2K binary using plams interface.
 
@@ -54,14 +67,14 @@ class CP2K(Package):
         # Input modifications
         cp2k_settings = Settings()
         cp2k_settings.input = settings.specific.cp2k
-        job = plams.Cp2kJob(name=job_name, settings=cp2k_settings,
-                            molecule=mol)
+        job = plams.Cp2kJob(name=job_name, settings=cp2k_settings, molecule=mol)
         r = job.run()
 
         work_dir = work_dir if work_dir is not None else job.path
 
-        result = CP2K_Result(cp2k_settings, mol, job_name, r.job.path,
-                             work_dir, status=job.status)
+        result = CP2K_Result(
+            cp2k_settings, mol, job_name, r.job.path, work_dir, status=job.status
+        )
 
         return result
 
@@ -105,20 +118,20 @@ class CP2K(Package):
             """
             if not isinstance(value, list):
                 abc = [value] * 3
-                abc_cell = ' [angstrom] {} {} {}'.format(*abc)
+                abc_cell = " [angstrom] {} {} {}".format(*abc)
                 s.specific.cp2k.force_eval.subsys.cell.ABC = abc_cell
             elif isinstance(value[0], list):
                 a, b, c = value  #
-                fun = lambda xs: '{} {} {}'.format(*xs)
+                fun = lambda xs: "{} {} {}".format(*xs)
                 s.specific.cp2k.force_eval.subsys.cell.A = fun(a)
                 s.specific.cp2k.force_eval.subsys.cell.B = fun(b)
                 s.specific.cp2k.force_eval.subsys.cell.C = fun(c)
-                s.specific.cp2k.force_eval.subsys.cell.periodic = 'xyz'
+                s.specific.cp2k.force_eval.subsys.cell.periodic = "xyz"
             else:
                 a, b, c = value  # Pattern match list
-                abc = ' [angstrom] {} {} {}'.format(a, b, c)
+                abc = " [angstrom] {} {} {}".format(a, b, c)
                 s.specific.cp2k.force_eval.subsys.cell.ABC = abc
-                s.specific.cp2k.force_eval.subsys.cell.periodic = 'xyz'
+                s.specific.cp2k.force_eval.subsys.cell.periodic = "xyz"
 
             return s
 
@@ -149,20 +162,23 @@ class CP2K(Package):
 
             def symbols2charge(s):
                 q = charge_dict[s]
-                return 'q{}'.format(q)
+                return "q{}".format(q)
 
             symbols = set([at.symbol for at in mol.atoms])
             qs = list(map(symbols2charge, symbols))
             for symb, q in zip(symbols, qs):
-                name = '{}-{}'.format(prefix, q)
-                if key == 'basis':
+                name = "{}-{}".format(prefix, q)
+                if key == "basis":
                     s.specific.cp2k.force_eval.subsys.kind[symb]["basis_set"] = name
-                elif key == 'potential':
+                elif key == "potential":
                     s.specific.cp2k.force_eval.subsys.kind[symb]["potential"] = name
             return s
 
-        funs = {'basis': expand_basis_set, 'potential': expand_basis_set,
-                'cell_parameters': write_cell_parameters}
+        funs = {
+            "basis": expand_basis_set,
+            "potential": expand_basis_set,
+            "cell_parameters": write_cell_parameters,
+        }
 
         # Function that handles the special keyword
         f = funs.get(key)
@@ -170,7 +186,7 @@ class CP2K(Package):
         if f is not None:
             return f(settings, value, mol, key)
         else:
-            msg = 'Keyword ' + key + ' doesn\'t exist'
+            msg = "Keyword " + key + " doesn't exist"
             warn(msg)
 
 
@@ -178,12 +194,26 @@ class CP2K_Result(Result):
     """
     Class providing access to CP2K result.
     """
-    def __init__(self, settings, molecule, job_name, plams_dir, work_dir=None,
-                 properties=package_properties['cp2k'],
-                 status='successful'):
-        super().__init__(settings, molecule, job_name, plams_dir,
-                         work_dir=work_dir, properties=properties,
-                         status=status)
+
+    def __init__(
+        self,
+        settings,
+        molecule,
+        job_name,
+        plams_dir,
+        work_dir=None,
+        properties=package_properties["cp2k"],
+        status="successful",
+    ):
+        super().__init__(
+            settings,
+            molecule,
+            job_name,
+            plams_dir,
+            work_dir=work_dir,
+            properties=properties,
+            status=status,
+        )
 
     @classmethod
     def from_dict(cls, settings, molecule, job_name, archive, status):
@@ -202,7 +232,7 @@ class CP2K_Result(Result):
         results.
         """
         plams_dir, work_dir = list(map(archive.get, ["plams_dir", "work_dir"]))
-        return CP2K_Result(settings, molecule, job_name, plams_dir, work_dir,
-                           status)
+        return CP2K_Result(settings, molecule, job_name, plams_dir, work_dir, status)
+
 
 cp2k = CP2K()

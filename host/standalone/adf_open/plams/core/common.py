@@ -9,6 +9,7 @@ import types
 
 from os.path import join as opj
 from six import PY3
+
 if PY3:
     import builtins
 else:
@@ -18,10 +19,19 @@ else:
 from .errors import PlamsError
 from .settings import Settings
 
-__all__ = ['init', 'finish', 'log', 'load', 'load_all', 'add_to_class', 'add_to_instance']
+__all__ = [
+    "init",
+    "finish",
+    "log",
+    "load",
+    "load_all",
+    "add_to_class",
+    "add_to_instance",
+]
 
 
-#===================================================================================================
+# ===================================================================================================
+
 
 def init(path=None, folder=None):
     """Initialize PLAMS environment. Create global ``config`` and default |JobManager|.
@@ -41,28 +51,54 @@ def init(path=None, folder=None):
     builtins.config = Settings()
 
     from os.path import isfile, expandvars, dirname
-    if 'PLAMSDEFAULTS' in os.environ and isfile(expandvars('$PLAMSDEFAULTS')):
-        defaults = expandvars('$PLAMSDEFAULTS')
-    elif 'PLAMSHOME' in os.environ and isfile(opj(expandvars('$PLAMSHOME'), 'src', 'scm', 'plams', 'plams_defaults')):
-        defaults = opj(expandvars('$PLAMSHOME'), 'src', 'scm', 'plams', 'plams_defaults')
-    elif 'ADFHOME' in os.environ and isfile(opj(expandvars('$ADFHOME'), 'scripting', 'plams', 'src', 'scm', 'plams', 'plams_defaults')):
-        defaults = opj(expandvars('$ADFHOME'), 'scripting', 'plams', 'src', 'scm', 'plams', 'plams_defaults')
-    else:
-        defaults = opj(dirname(dirname(__file__)), 'plams_defaults')
-        if not isfile(defaults):
-            raise PlamsError('plams_defaults not found, please set PLAMSDEFAULTS or PLAMSHOME in your environment')
-    exec(compile(open(defaults).read(), defaults, 'exec'))
 
+    if "PLAMSDEFAULTS" in os.environ and isfile(expandvars("$PLAMSDEFAULTS")):
+        defaults = expandvars("$PLAMSDEFAULTS")
+    elif "PLAMSHOME" in os.environ and isfile(
+        opj(expandvars("$PLAMSHOME"), "src", "scm", "plams", "plams_defaults")
+    ):
+        defaults = opj(
+            expandvars("$PLAMSHOME"), "src", "scm", "plams", "plams_defaults"
+        )
+    elif "ADFHOME" in os.environ and isfile(
+        opj(
+            expandvars("$ADFHOME"),
+            "scripting",
+            "plams",
+            "src",
+            "scm",
+            "plams",
+            "plams_defaults",
+        )
+    ):
+        defaults = opj(
+            expandvars("$ADFHOME"),
+            "scripting",
+            "plams",
+            "src",
+            "scm",
+            "plams",
+            "plams_defaults",
+        )
+    else:
+        defaults = opj(dirname(dirname(__file__)), "plams_defaults")
+        if not isfile(defaults):
+            raise PlamsError(
+                "plams_defaults not found, please set PLAMSDEFAULTS or PLAMSHOME in your environment"
+            )
+    exec(compile(open(defaults).read(), defaults, "exec"))
 
     from .jobmanager import JobManager
+
     config.jm = JobManager(config.jobmanager, path, folder)
 
-    log('PLAMS running with Python %i' % (3 if PY3 else 2), 5)
-    log('PLAMS environment initialized', 5)
-    log('PLAMS working folder: %s' % config.jm.workdir, 1)
+    log("PLAMS running with Python %i" % (3 if PY3 else 2), 5)
+    log("PLAMS environment initialized", 5)
+    log("PLAMS working folder: %s" % config.jm.workdir, 1)
 
 
-#===================================================================================================
+# ===================================================================================================
+
 
 def finish(otherJM=None):
     """Wait for all threads to finish and clean the environment.
@@ -72,27 +108,29 @@ def finish(otherJM=None):
     If for some reason you use other job managers than the default one, they need to passed as *otherJM* list.
     """
     for thread in threading.enumerate():
-        if thread.name == 'plamsthread':
+        if thread.name == "plamsthread":
             thread.join()
 
     config.jm._clean()
     if otherJM:
         for jm in otherJM:
             jm._clean()
-    log('PLAMS environment cleaned up', 5)
+    log("PLAMS environment cleaned up", 5)
 
     if config.erase_workdir is True:
         shutil.rmtree(config.jm.workdir)
 
 
-#===================================================================================================
+# ===================================================================================================
+
 
 def load(filename):
     """Load previously saved job from ``.dill`` file. This is just a shortcut for |load_job| method of the default |JobManager| ``config.jm``."""
     return config.jm.load_job(filename)
 
 
-#===================================================================================================
+# ===================================================================================================
+
 
 def load_all(path, jobmanager=None):
     """Load all jobs from *path*.
@@ -107,41 +145,43 @@ def load_all(path, jobmanager=None):
     """
     jm = jobmanager or config.jm
     loaded_jobs = {}
-    for f in glob.glob(opj(path, '*', '*.dill')):
+    for f in glob.glob(opj(path, "*", "*.dill")):
         loaded_jobs[f] = jm.load_job(f)
     return loaded_jobs
 
 
-#===================================================================================================
+# ===================================================================================================
 
 _stdlock = threading.Lock()
 _filelock = threading.Lock()
+
 
 def log(message, level=0):
     """Log *message* with verbosity *level*.
 
     Logs are printed independently to both text file and standard output. If *level* is equal or lower than verbosity (defined by ``config.log.file`` or ``config.log.stdout``) the message is printed. Date and/or time can be added based on ``config.log.date`` and ``config.log.time``. All logging activity is thread safe.
     """
-    if 'config' in vars(builtins):
+    if "config" in vars(builtins):
         if level <= config.log.file or level <= config.log.stdout:
             message = str(message)
-            prefix = ''
+            prefix = ""
             if config.log.date:
-                prefix += '%d.%m|'
+                prefix += "%d.%m|"
             if config.log.time:
-                prefix += '%H:%M:%S'
+                prefix += "%H:%M:%S"
             if prefix:
-                prefix = '[' + prefix.rstrip('|') + '] '
+                prefix = "[" + prefix.rstrip("|") + "] "
                 message = time.strftime(prefix) + message
             if level <= config.log.stdout:
                 with _stdlock:
                     print(message)
-            if level <= config.log.file and 'jm' in config:
-                with _filelock, open(config.jm.logfile, 'a') as f:
-                    f.write(message + '\n')
+            if level <= config.log.file and "jm" in config:
+                with _filelock, open(config.jm.logfile, "a") as f:
+                    f.write(message + "\n")
 
 
-#===================================================================================================
+# ===================================================================================================
+
 
 def add_to_class(classname):
     """Add decorated function as a method to the whole class *classname*.
@@ -162,13 +202,17 @@ def add_to_class(classname):
     If *classname* is |Results| or any of its subclasses, the added method will be wrapped with the thread safety guard (see :ref:`parallel`).
     """
     from .results import _restrict, _MetaResults
+
     def decorator(func):
         if isinstance(classname, _MetaResults):
             func = _restrict(func)
         setattr(classname, func.__name__, func)
+
     return decorator
 
-#===================================================================================================
+
+# ===================================================================================================
+
 
 def add_to_instance(instance):
     """Add decorated function as a method to one particular *instance*.
@@ -189,19 +233,20 @@ def add_to_instance(instance):
     If *instance* is an instance of |Results| or any of its subclasses, the added method will be wrapped with the thread safety guard (see :ref:`parallel`).
     """
     from .results import _restrict, Results
+
     def decorator(func):
         if isinstance(instance, Results):
             func = _restrict(func)
         func = types.MethodType(func, instance)
         setattr(instance, func.__func__.__name__, func)
+
     return decorator
 
 
-#===================================================================================================
+# ===================================================================================================
 
-#remove me and all my calls after moving to Python3!!!
+# remove me and all my calls after moving to Python3!!!
 def string(s):
     if PY3 and isinstance(s, bytes):
         return s.decode()
     return s
-

@@ -1,16 +1,21 @@
-
-__all__ = ['find_first_job','select_max', 'select_min']
+__all__ = ["find_first_job", "select_max", "select_min"]
 
 from noodles import schedule_hint
 
+
 @schedule_hint()
 def find_first_job(pred, packagelist, settings, molecule, job_name, **kwargs):
-    joblist = [package(settings, molecule, job_name=package.pkg_name+"_"+job_name, **kwargs) for package in packagelist]
+    joblist = [
+        package(
+            settings, molecule, job_name=package.pkg_name + "_" + job_name, **kwargs
+        )
+        for package in packagelist
+    ]
     return find_first(pred, joblist)
 
 
 @schedule_hint()
-def select_max(results, prop='energy'):
+def select_max(results, prop="energy"):
     """
     Scheduled function to select a result with the maximum value for property
     from a list or list of lists
@@ -37,7 +42,7 @@ def sel_max(results, prop):
 
 
 @schedule_hint()
-def select_min(results, prop='energy'):
+def select_min(results, prop="energy"):
     """
     Scheduled function to select a result with the minimum value for property from
     a list or list of lists
@@ -46,7 +51,7 @@ def select_min(results, prop='energy'):
     :return:
     """
     min_res = sel_min(results, prop)
-    print("Selected " + str(max_res.job_name) + ": "+ str(min_res.__getattr__(prop)))
+    print("Selected " + str(max_res.job_name) + ": " + str(min_res.__getattr__(prop)))
     return min_res
 
 

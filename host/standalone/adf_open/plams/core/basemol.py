@@ -14,14 +14,12 @@ from .settings import Settings
 from ..tools.pdbtools import PDBHandler, PDBRecord
 from ..tools.utils import Units, PT
 
-__all__ = ['Atom', 'Bond', 'Molecule']
+__all__ = ["Atom", "Bond", "Molecule"]
 
 
-
-#===================================================================================================
-#===================================================================================================
-#===================================================================================================
-
+# ===================================================================================================
+# ===================================================================================================
+# ===================================================================================================
 
 
 class Atom(object):
@@ -67,7 +65,17 @@ class Atom(object):
 
     Internally, atomic coordinates are always expressed in angstroms. Most of methods that read or modify atomic coordinates accept keyword argument ``unit`` allowing to choose unit in which results and/or arguments are expressed (see |Units| for details). Throughout the entire code angstrom is the default length unit. If you don't specify ``unit`` parameter in any place of your script, all automatic unit handling described above boils down to occasional multiplication/division by 1.0.
     """
-    def __init__(self, atnum=0, symbol=None, coords=None, unit='angstrom', bonds=None, mol=None, **other):
+
+    def __init__(
+        self,
+        atnum=0,
+        symbol=None,
+        coords=None,
+        unit="angstrom",
+        bonds=None,
+        mol=None,
+        **other
+    ):
         if symbol is not None:
             self.symbol = symbol
         else:
@@ -82,15 +90,15 @@ class Atom(object):
             tmp = []
             for i in coords:
                 try:
-                    i = Units.convert(float(i), unit, 'angstrom')
-                except ValueError: pass
+                    i = Units.convert(float(i), unit, "angstrom")
+                except ValueError:
+                    pass
                 tmp.append(i)
             self.coords = tuple(tmp)
         else:
-            raise TypeError('Atom: Invalid coordinates passed')
+            raise TypeError("Atom: Invalid coordinates passed")
 
-
-    def str(self, symbol=True, suffix='', unit='angstrom', space=14, decimal=6):
+    def str(self, symbol=True, suffix="", unit="angstrom", space=14, decimal=6):
         """Return a string representation of this atom.
 
         Returned string is a single line (no newline characters) that always contains atomic coordinates (and maybe more). Each atomic coordinate is printed using *space* characters, with *decimal* characters reserved for decimal digits. Coordinates values are expressed in *unit*.
@@ -117,14 +125,20 @@ class Atom(object):
                      C      1.000000      1.500000      2.000000 subsystem=membrane
 
         """
-        strformat = '{:>%is}'%space
-        numformat = '{:>%i.%if}'%(space,decimal)
-        f = lambda x: numformat.format(Units.convert(x, 'angstrom', unit)) if isinstance(x, (int,float)) else strformat.format(str(x))
+        strformat = "{:>%is}" % space
+        numformat = "{:>%i.%if}" % (space, decimal)
+        f = (
+            lambda x: numformat.format(Units.convert(x, "angstrom", unit))
+            if isinstance(x, (int, float))
+            else strformat.format(str(x))
+        )
         if symbol is False:
-            return ('{0}{1}{2} '+suffix).format(*map(f,self.coords), **self.__dict__)
+            return ("{0}{1}{2} " + suffix).format(*map(f, self.coords), **self.__dict__)
         if symbol is True:
             symbol = self.symbol
-        return ('{0:>10s}{1}{2}{3} '+suffix).format(symbol, *map(f,self.coords), **self.__dict__)
+        return ("{0:>10s}{1}{2}{3} " + suffix).format(
+            symbol, *map(f, self.coords), **self.__dict__
+        )
 
     def __str__(self):
         """Return a string representation of this atom. Simplified version of :meth:`str` to work as a magic method."""
@@ -134,92 +148,116 @@ class Atom(object):
         """Iteration through atom yields coordinates. Thanks to that instances of |Atom| can be passed to any method requiring point or vector as an argument."""
         return iter(self.coords)
 
-    def _setx(self, value): self.coords = (value, self.coords[1], self.coords[2])
-    def _sety(self, value): self.coords = (self.coords[0], value, self.coords[2])
-    def _setz(self, value): self.coords = (self.coords[0], self.coords[1], value)
-    def _getx(self): return self.coords[0]
-    def _gety(self): return self.coords[1]
-    def _getz(self): return self.coords[2]
+    def _setx(self, value):
+        self.coords = (value, self.coords[1], self.coords[2])
+
+    def _sety(self, value):
+        self.coords = (self.coords[0], value, self.coords[2])
+
+    def _setz(self, value):
+        self.coords = (self.coords[0], self.coords[1], value)
+
+    def _getx(self):
+        return self.coords[0]
+
+    def _gety(self):
+        return self.coords[1]
+
+    def _getz(self):
+        return self.coords[2]
+
     x = property(_getx, _setx)
     y = property(_gety, _sety)
     z = property(_getz, _setz)
 
     def _getsymbol(self):
         return PT.get_symbol(self.atnum)
+
     def _setsymbol(self, symbol):
         self.atnum = PT.get_atomic_number(symbol)
+
     symbol = property(_getsymbol, _setsymbol)
 
     def _getmass(self):
         return PT.get_mass(self.atnum)
+
     mass = property(_getmass)
 
     def _getradius(self):
         return PT.get_radius(self.atnum)
+
     radius = property(_getradius)
 
     def _getconnectors(self):
         return PT.get_connectors(self.atnum)
+
     connectors = property(_getconnectors)
 
-    def translate(self, vector, unit='angstrom'):
+    def translate(self, vector, unit="angstrom"):
         """Move this atom in space by *vector*, expressed in *unit*.
 
         *vector* should be an iterable container of length 3 (usually tuple, list or numpy array). *unit* describes unit of values stored in *vector*.
 
         This method requires all coordinates to be numerical values, :exc:`~exceptions.TypeError` is raised otherwise.
         """
-        ratio = Units.conversion_ratio(unit, 'angstrom')
-        self.coords = tuple(i + j*ratio for i,j in zip(self, vector))
+        ratio = Units.conversion_ratio(unit, "angstrom")
+        self.coords = tuple(i + j * ratio for i, j in zip(self, vector))
 
-
-    def move_to(self, point, unit='angstrom'):
+    def move_to(self, point, unit="angstrom"):
         """Move this atom to a given *point* in space, expressed in *unit*.
 
         *point* should be an iterable container of length 3 (for example: tuple, |Atom|, list, numpy array). *unit* describes unit of values stored in *point*.
 
         This method requires all coordinates to be numerical values, :exc:`~exceptions.TypeError` is raised otherwise.
         """
-        ratio = Units.conversion_ratio(unit, 'angstrom')
-        self.coords = tuple(i*ratio for i in point)
+        ratio = Units.conversion_ratio(unit, "angstrom")
+        self.coords = tuple(i * ratio for i in point)
 
-
-    def distance_to(self, point, unit='angstrom', result_unit='angstrom'):
+    def distance_to(self, point, unit="angstrom", result_unit="angstrom"):
         """Measure the distance between this atom and *point*.
 
         *point* should be an iterable container of length 3 (for example: tuple, |Atom|, list, numpy array). *unit* describes unit of values stored in *point*. Returned value is expressed in *result_unit*.
 
         This method requires all coordinates to be numerical values, :exc:`~exceptions.TypeError` is raised otherwise.
         """
-        ratio = Units.conversion_ratio(unit, 'angstrom')
+        ratio = Units.conversion_ratio(unit, "angstrom")
         res = 0.0
-        for i,j in zip(self,point):
-            res += (i - j*ratio)**2
-        return Units.convert(math.sqrt(res), 'angstrom', result_unit)
+        for i, j in zip(self, point):
+            res += (i - j * ratio) ** 2
+        return Units.convert(math.sqrt(res), "angstrom", result_unit)
 
-
-    def vector_to(self, point, unit='angstrom', result_unit='angstrom'):
+    def vector_to(self, point, unit="angstrom", result_unit="angstrom"):
         """Calculate a vector from this atom to *point*.
 
         *point* should be an iterable container of length 3 (for example: tuple, |Atom|, list, numpy array). *unit* describes unit of values stored in *point*. Returned value is expressed in *result_unit*.
 
         This method requires all coordinates to be numerical values, :exc:`~exceptions.TypeError` is raised otherwise.
         """
-        ratio = Units.conversion_ratio(unit, 'angstrom')
-        resultratio = Units.conversion_ratio('angstrom', result_unit)
-        return tuple((i*ratio-j)*resultratio for i,j in zip(point, self))
+        ratio = Units.conversion_ratio(unit, "angstrom")
+        resultratio = Units.conversion_ratio("angstrom", result_unit)
+        return tuple((i * ratio - j) * resultratio for i, j in zip(point, self))
 
-
-    def angle(self, point1, point2, point1unit='angstrom', point2unit='angstrom',result_unit='radian'):
+    def angle(
+        self,
+        point1,
+        point2,
+        point1unit="angstrom",
+        point2unit="angstrom",
+        result_unit="radian",
+    ):
         """Calculate an angle between vectors pointing from this atom to *point1* and *point2*.
 
         *point1* and *point2* should be iterable containers of length 3 (for example: tuple, |Atom|, list, numpy array). Values stored in them are expressed in, respectively, *point1unit* and *point2unit*. Returned value is expressed in *result_unit*.
 
         This method requires all coordinates to be numerical values, :exc:`~exceptions.TypeError` is raised otherwise.
         """
-        num = numpy.dot(self.vector_to(point1, point1unit), self.vector_to(point2, point2unit))
-        den = self.distance_to(point1, point1unit) * self.distance_to(point2, point2unit)
-        return Units.convert(math.acos(num/den), 'radian', result_unit)
+        num = numpy.dot(
+            self.vector_to(point1, point1unit), self.vector_to(point2, point2unit)
+        )
+        den = self.distance_to(point1, point1unit) * self.distance_to(
+            point2, point2unit
+        )
+        return Units.convert(math.acos(num / den), "radian", result_unit)
 
     def rotate(self, matrix):
         """Rotate this atom according to rotation *matrix*.
@@ -230,18 +268,16 @@ class Atom(object):
 
             This method does not check if supplied matrix is a proper rotation matrix.
         """
-        matrix = numpy.array(matrix).reshape(3,3)
+        matrix = numpy.array(matrix).reshape(3, 3)
         self.coords = tuple(numpy.dot(matrix, numpy.array(self.coords)))
 
 
-
-#===================================================================================================
-#===================================================================================================
-#===================================================================================================
-
+# ===================================================================================================
+# ===================================================================================================
+# ===================================================================================================
 
 
-class Bond (object):
+class Bond(object):
     """A class representing a bond between two atoms.
 
     An instance of this class has the following attributes:
@@ -255,7 +291,9 @@ class Bond (object):
         Newly created bond is **not** added to ``atom1.bonds`` or ``atom2.bonds``. Storing information about |Bond| in |Atom| is relevant only in the context of the whole |Molecule|, so this information is updated by :meth:`~Molecule.add_bond`.
 
     """
+
     AR = 1.5
+
     def __init__(self, atom1, atom2, order=1, mol=None, **other):
         self.atom1 = atom1
         self.atom2 = atom2
@@ -263,27 +301,22 @@ class Bond (object):
         self.mol = mol
         self.properties = Settings(other)
 
-
     def __str__(self):
         """Return string representation of this bond."""
-        return '(%s)--%1.1f--(%s)'%(str(self.atom1), self.order, str(self.atom2))
-
+        return "(%s)--%1.1f--(%s)" % (str(self.atom1), self.order, str(self.atom2))
 
     def __iter__(self):
         """Iterate over bonded atoms (``atom1`` first, then ``atom2``)."""
         yield self.atom1
         yield self.atom2
 
-
     def is_aromatic(self):
         """Check if this bond is aromatic."""
         return self.order == Bond.AR
 
-
-    def length(self, unit='angstrom'):
+    def length(self, unit="angstrom"):
         """Return bond's length, expressed in *unit*."""
         return self.atom1.distance_to(self.atom2, result_unit=unit)
-
 
     def other_end(self, atom):
         """Return the atom on the other end of this bond with respect to *atom*.
@@ -295,27 +328,24 @@ class Bond (object):
         elif atom is self.atom2:
             return self.atom1
         else:
-            raise MoleculeError('Bond.other_end: invalid atom passed')
+            raise MoleculeError("Bond.other_end: invalid atom passed")
 
-
-    def resize(self, atom, length, unit='angstrom'):
+    def resize(self, atom, length, unit="angstrom"):
         """Change the length of the bond to *length*.
 
         This method works in the following way: one of two atoms forming this bond is moved along the bond in such a way that new length is *length*, in *unit* (direction of the bond in space does not change). Atom indicated by *atom* has to be one of bond's atoms and it is the atom that is **not** moved.
         """
-        ratio = 1.0 - Units.convert(length, unit, 'angstrom')/self.length()
+        ratio = 1.0 - Units.convert(length, unit, "angstrom") / self.length()
         moving = self.other_end(atom)
-        moving.translate(tuple(i*ratio for i in moving.vector_to(atom)))
+        moving.translate(tuple(i * ratio for i in moving.vector_to(atom)))
 
 
-
-#===================================================================================================
-#===================================================================================================
-#===================================================================================================
-
+# ===================================================================================================
+# ===================================================================================================
+# ===================================================================================================
 
 
-class Molecule (object):
+class Molecule(object):
     """A class representing basic molecule object.
 
     An instance of this class has the following attributes:
@@ -395,23 +425,20 @@ class Molecule (object):
     However, if you feel more familiar with identifying atoms by natural numbers, you can use :meth:`set_atoms_id` to equip each atom of the molecule with ``id`` attribute equal to atom's position within ``atoms`` list. This method can also be helpful to track changes in your molecule during tasks that can reorder atoms.
     """
 
-
     def __init__(self, filename=None, inputformat=None, geometry=1, **other):
         self.atoms = []
         self.bonds = []
         self.lattice = []
         self.properties = Settings(other)
 
-        if filename is not None :
+        if filename is not None:
             self.read(filename, inputformat, geometry)
             self.properties.source = filename
             self.properties.name = os.path.splitext(os.path.basename(filename))[0]
 
-
-#===================================================================================================
-#==== Atoms/bonds manipulation =====================================================================
-#===================================================================================================
-
+    # ===================================================================================================
+    # ==== Atoms/bonds manipulation =====================================================================
+    # ===================================================================================================
 
     def copy(self, atoms=None):
         """Return a copy of this molecule. New molecule has atoms, bonds and all other components distinct from original molecule (it is so called "deep copy").
@@ -432,7 +459,6 @@ class Molecule (object):
         for at in self.atoms:
             del at._stay
         return ret
-
 
     def add_atom(self, atom, adjacent=None):
         """Add new *atom* to this molecule.
@@ -460,7 +486,6 @@ class Molecule (object):
                 else:
                     self.add_bond(atom, adj)
 
-
     def delete_atom(self, atom):
         """Delete *atom* from this molecule.
 
@@ -482,14 +507,15 @@ class Molecule (object):
 
         """
         if atom.mol != self:
-            raise MoleculeError('delete_atom: passed atom should belong to the molecule')
+            raise MoleculeError(
+                "delete_atom: passed atom should belong to the molecule"
+            )
         try:
             self.atoms.remove(atom)
         except:
-            raise MoleculeError('delete_atom: invalid argument passed as atom')
+            raise MoleculeError("delete_atom: invalid argument passed as atom")
         for b in reversed(atom.bonds):
             self.delete_bond(b)
-
 
     def add_bond(self, arg1, arg2=None, order=1):
         """Add new bond to this molecule.
@@ -510,7 +536,7 @@ class Molecule (object):
         elif isinstance(arg1, Bond):
             newbond = arg1
         else:
-            raise MoleculeError('add_bond: invalid arguments passed')
+            raise MoleculeError("add_bond: invalid arguments passed")
 
         if newbond.atom1.mol == self and newbond.atom2.mol == self:
             newbond.mol = self
@@ -518,8 +544,7 @@ class Molecule (object):
             newbond.atom1.bonds.append(newbond)
             newbond.atom2.bonds.append(newbond)
         else:
-            raise MoleculeError('add_bond: bonded atoms have to belong to the molecule')
-
+            raise MoleculeError("add_bond: bonded atoms have to belong to the molecule")
 
     def delete_bond(self, arg1, arg2=None):
         """Delete bond from this molecule
@@ -531,34 +556,33 @@ class Molecule (object):
         elif isinstance(arg1, Bond):
             delbond = arg1
         else:
-            raise MoleculeError('delete_bond: invalid arguments passed')
+            raise MoleculeError("delete_bond: invalid arguments passed")
         if delbond in self.bonds:
             delbond.mol = None
             self.bonds.remove(delbond)
             delbond.atom1.bonds.remove(delbond)
             delbond.atom2.bonds.remove(delbond)
 
-
     def delete_all_bonds(self):
         """Delete all bonds from the molecule."""
         for b in reversed(self.bonds):
             self.delete_bond(b)
 
-
     def find_bond(self, atom1, atom2):
         """Find and return a bond between *atom1* and *atom2*. Both atoms have to belong to the molecule. If a bond between chosen atoms does not exist, ``None`` is returned."""
         if atom1.mol != self or atom2.mol != self:
-            raise MoleculeError('find_bond: atoms passed as arguments have to belong to the molecule')
+            raise MoleculeError(
+                "find_bond: atoms passed as arguments have to belong to the molecule"
+            )
         for b in atom1.bonds:
             if atom2 is b.other_end(atom1):
                 return b
         return None
 
-
     def set_atoms_id(self):
         """Equip each atom of this molecule with ``id`` attribute equal to its position within ``atoms`` list."""
-        for i,at in enumerate(self.atoms):
-            at.id = i+1
+        for i, at in enumerate(self.atoms):
+            at.id = i + 1
 
     def unset_atoms_id(self):
         """Delete ``id`` attributes of all atoms."""
@@ -568,16 +592,14 @@ class Molecule (object):
             except AttributeError:
                 pass
 
-
     def neighbors(self, atom):
         """Return a list of neighbors of *atom* within this molecule.
 
         *atom* has to belong to the molecule. Returned list follows the same order as ``bonds`` list of *atom*.
         """
         if atom.mol != self:
-            raise MoleculeError('neighbors: passed atom should belong to the molecule')
+            raise MoleculeError("neighbors: passed atom should belong to the molecule")
         return [b.other_end(atom) for b in atom.bonds]
-
 
     def separate(self):
         """Separate this molecule into connected components.
@@ -652,7 +674,6 @@ class Molecule (object):
 
         return frags
 
-
     def guess_bonds(self):
         """Try to guess bonds in the molecule based on types and positions of atoms.
 
@@ -672,21 +693,21 @@ class Molecule (object):
             eford = order
             if order == 1.5:
                 eford = 1.15
-            elif order == 1 and {atom1.symbol, atom2.symbol} == {'C', 'N'}:
+            elif order == 1 and {atom1.symbol, atom2.symbol} == {"C", "N"}:
                 eford = 1.11
-            return ((eford+0.9)*ratio, order, ratio, atom1, atom2)
+            return ((eford + 0.9) * ratio, order, ratio, atom1, atom2)
 
         self.delete_all_bonds()
 
         dmax = 1.28
 
-        cubesize = dmax*2.1*max([at.radius for at in self.atoms])
+        cubesize = dmax * 2.1 * max([at.radius for at in self.atoms])
 
         cubes = {}
-        for i,at in enumerate(self.atoms):
-            at._id = i+1
+        for i, at in enumerate(self.atoms):
+            at._id = i + 1
             at.free = at.connectors
-            at.cube = tuple(map(lambda x: int(math.floor(x/cubesize)), at.coords))
+            at.cube = tuple(map(lambda x: int(math.floor(x / cubesize)), at.coords))
             if at.cube in cubes:
                 cubes[at.cube].append(at)
             else:
@@ -695,28 +716,28 @@ class Molecule (object):
         neighbors = {}
         for cube in cubes:
             neighbors[cube] = []
-            for i in range(cube[0]-1, cube[0]+2):
-                for j in range(cube[1]-1, cube[1]+2):
-                    for k in range(cube[2]-1, cube[2]+2):
-                        if (i,j,k) in cubes:
-                            neighbors[cube] += cubes[(i,j,k)]
+            for i in range(cube[0] - 1, cube[0] + 2):
+                for j in range(cube[1] - 1, cube[1] + 2):
+                    for k in range(cube[2] - 1, cube[2] + 2):
+                        if (i, j, k) in cubes:
+                            neighbors[cube] += cubes[(i, j, k)]
 
         heap = []
         for at1 in self.atoms:
             if at1.free > 0:
                 for at2 in neighbors[at1.cube]:
                     if (at2.free > 0) and (at1._id < at2._id):
-                        ratio = at1.distance_to(at2)/(at1.radius+at2.radius)
-                        if (ratio < dmax):
+                        ratio = at1.distance_to(at2) / (at1.radius + at2.radius)
+                        if ratio < dmax:
                             heap.append(element(0, ratio, at1, at2))
-                            #I hate to do this, but I guess there's no other way :/ [MH]
-                            if (at1.atnum == 16 and at2.atnum == 8):
+                            # I hate to do this, but I guess there's no other way :/ [MH]
+                            if at1.atnum == 16 and at2.atnum == 8:
                                 at1.free = 6
-                            elif (at2.atnum == 16 and at1.atnum == 8):
+                            elif at2.atnum == 16 and at1.atnum == 8:
                                 at2.free = 6
-                            elif (at1.atnum == 7):
+                            elif at1.atnum == 7:
                                 at1.free += 1
-                            elif (at2.atnum == 7):
+                            elif at2.atnum == 7:
                                 at2.free += 1
         heapq.heapify(heap)
 
@@ -729,19 +750,19 @@ class Molecule (object):
 
         while heap:
             val, o, r, at1, at2 = heapq.heappop(heap)
-            step = 1 if o in [0,2] else 0.5
+            step = 1 if o in [0, 2] else 0.5
             if at1.free >= step and at2.free >= step:
                 o += step
                 at1.free -= step
                 at2.free -= step
                 if o < 3:
-                    heapq.heappush(heap, element(o,r,at1,at2))
+                    heapq.heappush(heap, element(o, r, at1, at2))
                 else:
-                    self.add_bond(at1,at2,o)
+                    self.add_bond(at1, at2, o)
             elif o > 0:
                 if o == 1.5:
                     o = Bond.AR
-                self.add_bond(at1,at2,o)
+                self.add_bond(at1, at2, o)
 
         def dfs(atom, par):
             atom.arom += 1000
@@ -753,7 +774,7 @@ class Molecule (object):
                     if par and oe.arom == 1:
                         b.order = 2
                         return True
-                    if dfs(oe, 1-par):
+                    if dfs(oe, 1 - par):
                         b.order = 1 + par
                         return True
 
@@ -765,25 +786,19 @@ class Molecule (object):
                 dfs(at, 1)
 
         for at in self.atoms:
-            del at.cube,at.free,at._id,at.arom
+            del at.cube, at.free, at._id, at.arom
 
+    # ===================================================================================================
+    # ==== Geometry operations ==========================================================================
+    # ===================================================================================================
 
-
-
-#===================================================================================================
-#==== Geometry operations ==========================================================================
-#===================================================================================================
-
-
-
-    def translate(self, vector, unit='angstrom'):
+    def translate(self, vector, unit="angstrom"):
         """Move this molecule in space by *vector*, expressed in *unit*.
 
         *vector* should be an iterable container of length 3 (usually tuple, list or numpy array). *unit* describes unit of values stored in *vector*.
         """
         for at in self.atoms:
             at.translate(vector, unit)
-
 
     def rotate(self, matrix):
         """Rotate this molecule according to rotation *matrix*.
@@ -797,14 +812,13 @@ class Molecule (object):
         for at in self.atoms:
             at.rotate(matrix)
 
-
-    def rotate_bond(self, bond, atom, angle, unit='radian'):
+    def rotate_bond(self, bond, atom, angle, unit="radian"):
         """Rotate given *bond* by an *angle* expressed in *unit*.
 
         *bond* should be chosen in such a way, that it divides the molecule into two parts (using a bond being part of a ring results in an error). *atom* has to belong to *bond* and is used to pick which "half" of the molecule is rotated. Positive angle denotes counterclockwise rotation (looking along the bond, from the stationary part of the molecule).
         """
         if atom not in bond:
-            raise MoleculeError('rotate_bond: atom has to belong to the bond')
+            raise MoleculeError("rotate_bond: atom has to belong to the bond")
 
         atoms_to_rotate = {atom}
 
@@ -819,35 +833,32 @@ class Molecule (object):
         dfs(atom)
 
         if len(atoms_to_rotate) == len(self):
-            raise MoleculeError('rotate_bond: chosen bond does not divide molecule')
+            raise MoleculeError("rotate_bond: chosen bond does not divide molecule")
 
         other_end = bond.other_end(atom)
         v = numpy.array(other_end.vector_to(atom))
         v /= numpy.linalg.norm(v)
 
-        W = numpy.array([[0, -v[2], v[1]],
-                         [v[2], 0, -v[0]],
-                         [-v[1], v[0], 0]])
+        W = numpy.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
 
-        angle = Units.convert(angle, unit, 'radian')
+        angle = Units.convert(angle, unit, "radian")
         a1 = math.sin(angle)
         a2 = 2 * math.pow(math.sin(0.5 * angle), 2)
 
-        rotmat = numpy.identity(3) + a1 * W + a2 * numpy.dot(W,W)
+        rotmat = numpy.identity(3) + a1 * W + a2 * numpy.dot(W, W)
 
-        trans = numpy.array(other_end.vector_to((0,0,0)))
+        trans = numpy.array(other_end.vector_to((0, 0, 0)))
         for at in atoms_to_rotate:
             at.translate(trans)
             at.rotate(rotmat)
             at.translate(-trans)
 
-
-    def closest_atom(self, point, unit='angstrom'):
+    def closest_atom(self, point, unit="angstrom"):
         """Return the atom of this molecule that is the closest one to some *point* in space.
 
         *point* should be an iterable container of length 3 (for example: tuple, |Atom|, list, numpy array). *unit* describes unit of values stored in *point*.
         """
-        dist = float('inf')
+        dist = float("inf")
         for at in self.atoms:
             newdist = at.distance_to(point, unit=unit)
             if newdist < dist:
@@ -855,8 +866,7 @@ class Molecule (object):
                 ret = at
         return ret
 
-
-    def distance_to_point(self, point, unit='angstrom', result_unit='angstrom'):
+    def distance_to_point(self, point, unit="angstrom", result_unit="angstrom"):
         """Calculate the distance between this molecule and some *point* in space (distance between *point* and :meth:`closest_atom`).
 
         *point* should be an iterable container of length 3 (for example: tuple, |Atom|, list, numpy array). *unit* describes unit of values stored in *point*. Returned value is expressed in *result_unit*.
@@ -864,29 +874,31 @@ class Molecule (object):
         at = self.closest_atom(point, unit)
         return at.distance_to(point, unit, result_uni)
 
-
-    def distance_to_mol(self, other, result_unit='angstrom', return_atoms=False):
+    def distance_to_mol(self, other, result_unit="angstrom", return_atoms=False):
         """Calculate the distance between this molecule and some *other* molecule.
 
         The distance is measured as the smallest distance between a pair of atoms, one belonging to each of the molecules. Returned distance is expressed in *result_unit*.
 
         If *return_atoms* is ``False``, only a single number is returned.  If *return_atoms* is ``True``, this method returns a tuple ``(distance, atom1, atom2)`` where ``atom1`` and ``atom2`` are atoms fulfilling the minimal distance, with atom1 belonging to this molecule and atom2 to *other*.
         """
-        dist = float('inf')
+        dist = float("inf")
         for at1 in self.atoms:
             for at2 in other.atoms:
-                newdist = (at1.x-at2.x)**2 + (at1.y-at2.y)**2 + (at1.z-at2.z)**2
+                newdist = (
+                    (at1.x - at2.x) ** 2 + (at1.y - at2.y) ** 2 + (at1.z - at2.z) ** 2
+                )
                 if newdist < dist:
                     dist = newdist
                     atom1 = at1
                     atom2 = at2
-        res = Units.convert(math.sqrt(dist), 'angstrom', result_unit)
+        res = Units.convert(math.sqrt(dist), "angstrom", result_unit)
         if return_atoms:
             return res, atom1, atom2
         return res
 
-
-    def wrap(self, length, angle=2*math.pi, length_unit='angstrom', angle_unit='radian'):
+    def wrap(
+        self, length, angle=2 * math.pi, length_unit="angstrom", angle_unit="radian"
+    ):
         """wrap(self, length, angle=2*pi, length_unit='angstrom', angle_unit='radian')
 
         Transform the molecule wrapping its x-axis around z-axis. This method is useful for building nanotubes or molecular wedding rings.
@@ -908,42 +920,41 @@ class Molecule (object):
         .. image:: _static/wrap2.*
 
         """
-        length = Units.convert(length, length_unit, 'angstrom')
-        angle = Units.convert(angle, angle_unit, 'radian')
+        length = Units.convert(length, length_unit, "angstrom")
+        angle = Units.convert(angle, angle_unit, "radian")
 
         xs = [atom.x for atom in self.atoms]
-        if max(xs)-min(xs) > length:
-            raise MoleculeError('wrap: x-extension of the molecule is larger than length')
+        if max(xs) - min(xs) > length:
+            raise MoleculeError(
+                "wrap: x-extension of the molecule is larger than length"
+            )
 
-        if angle < 0 or angle > 2*math.pi:
-            raise MoleculeError('wrap: angle must be between 0 and 2*pi')
+        if angle < 0 or angle > 2 * math.pi:
+            raise MoleculeError("wrap: angle must be between 0 and 2*pi")
 
         R = length / angle
 
-        def map_ring(x,y):
-            return ((R-y) * math.cos(x/R), (R-y) * math.sin(x/R))
+        def map_ring(x, y):
+            return ((R - y) * math.cos(x / R), (R - y) * math.sin(x / R))
 
         for at in self.atoms:
             at.x, at.y = map_ring(at.x, at.y)
 
-
-    def get_center_of_mass(self, unit='angstrom'):
+    def get_center_of_mass(self, unit="angstrom"):
         """Return the center of mass of this molecule (as a tuple). Returned coordinates are expressed in *unit*."""
-        center = [0.0,0.0,0.0]
+        center = [0.0, 0.0, 0.0]
         total_mass = 0.0
         for at in self.atoms:
             total_mass += at.mass
             for i in range(3):
-                center[i] += at.mass*at.coords[i]
+                center[i] += at.mass * at.coords[i]
         for i in range(3):
-            center[i] = Units.convert(center[i]/total_mass, 'angstrom', unit)
+            center[i] = Units.convert(center[i] / total_mass, "angstrom", unit)
         return tuple(center)
-
 
     def get_mass(self):
         """Return mass of the molecule, expressed in atomic units."""
         return sum([at.mass for at in self.atoms])
-
 
     def get_formula(self):
         """Calculate the molecular formula for this molecule.
@@ -951,18 +962,14 @@ class Molecule (object):
         Returned value is a single string. It contains simple molecular formula (it only includes atom types and total number of atoms of each type)."""
         atnums = [at.atnum for at in self.atoms]
         s = set(atnums)
-        formula = ''
+        formula = ""
         for i in s:
             formula += PT.get_symbol(i) + str(atnums.count(i))
         return formula
 
-
-
-#===================================================================================================
-#==== Magic methods ================================================================================
-#===================================================================================================
-
-
+    # ===================================================================================================
+    # ==== Magic methods ================================================================================
+    # ===================================================================================================
 
     def __len__(self):
         """Length of a molecule is the number of atoms."""
@@ -983,28 +990,30 @@ class Molecule (object):
                     (1)----1----(3)
                     (1)----1----(4)
         """
-        s = '  Atoms: \n'
-        for i,atom in enumerate(self.atoms):
-            s += ('%5i'%(i+1)) + str(atom) + '\n'
+        s = "  Atoms: \n"
+        for i, atom in enumerate(self.atoms):
+            s += ("%5i" % (i + 1)) + str(atom) + "\n"
         if len(self.bonds) > 0:
-            for j,atom in enumerate(self.atoms):
-                atom._tmpid = j+1
-            s += '  Bonds: \n'
+            for j, atom in enumerate(self.atoms):
+                atom._tmpid = j + 1
+            s += "  Bonds: \n"
             for bond in self.bonds:
-                s += '   (%d)--%1.1f--(%d)\n'%(bond.atom1._tmpid, bond.order, bond.atom2._tmpid)
+                s += "   (%d)--%1.1f--(%d)\n" % (
+                    bond.atom1._tmpid,
+                    bond.order,
+                    bond.atom2._tmpid,
+                )
             for atom in self.atoms:
                 del atom._tmpid
         if self.lattice:
-            s += '  Lattice:\n'
+            s += "  Lattice:\n"
             for vec in self.lattice:
-               s += '    %10.6f %10.6f %10.6f\n'%vec
+                s += "    %10.6f %10.6f %10.6f\n" % vec
         return s
-
 
     def __iter__(self):
         """Iterate over atoms."""
         return iter(self.atoms)
-
 
     def __getitem__(self, key):
         """Bracket notation can be used to access atoms or bonds directly.
@@ -1016,14 +1025,14 @@ class Molecule (object):
         """
         if isinstance(key, int):
             if key == 0:
-                raise MoleculeError('Numbering of atoms starts with 1')
+                raise MoleculeError("Numbering of atoms starts with 1")
             if key < 0:
                 return self.atoms[key]
-            return self.atoms[key-1]
+            return self.atoms[key - 1]
         if isinstance(key, tuple) and len(key) == 2:
             if key[0] == 0 or key[1] == 0:
-                raise MoleculeError('Numbering of atoms starts with 1')
-            return self.find_bond(self.atoms[key[0]-1], self.atoms[key[1]-1])
+                raise MoleculeError("Numbering of atoms starts with 1")
+            return self.find_bond(self.atoms[key[0] - 1], self.atoms[key[1] - 1])
 
     def __add__(self, other):
         """Create a new molecule that is a sum of this molecule and *other*::
@@ -1035,7 +1044,6 @@ class Molecule (object):
         m = self.copy()
         m += other
         return m
-
 
     def __iadd__(self, other):
         """Add *other* molecule to this one::
@@ -1054,37 +1062,34 @@ class Molecule (object):
         self.properties.soft_update(othercopy.properties)
         return self
 
-
     def __copy__(self):
         return self.copy()
 
-
-
-#===================================================================================================
-#==== File/format IO ===============================================================================
-#===================================================================================================
-
-
+    # ===================================================================================================
+    # ==== File/format IO ===============================================================================
+    # ===================================================================================================
 
     def readxyz(self, f, frame):
-
         def newatom(line):
             lst = line.split()
             shift = 1 if (len(lst) > 4 and lst[0] == str(i)) else 0
-            num = lst[0+shift]
+            num = lst[0 + shift]
             if isinstance(num, str):
                 num = PT.get_atomic_number(num)
-            self.add_atom(Atom(atnum=num, coords=(lst[1+shift],lst[2+shift],lst[3+shift])))
+            self.add_atom(
+                Atom(atnum=num, coords=(lst[1 + shift], lst[2 + shift], lst[3 + shift]))
+            )
 
         def newlatticevec(line):
             lst = line.split()
-            self.lattice.append((float(lst[1]),float(lst[2]),float(lst[3])))
+            self.lattice.append((float(lst[1]), float(lst[2]), float(lst[3])))
 
         fr = frame
         begin, first, nohead = True, True, False
         for line in f:
             if first:
-                if line.strip() == '' : continue
+                if line.strip() == "":
+                    continue
                 first = False
                 try:
                     n = int(line.strip())
@@ -1093,8 +1098,9 @@ class Molecule (object):
                     nohead = True
                     newatom(line)
             elif nohead:
-                if line.strip() == '' : break
-                if 'VEC' in line.upper():
+                if line.strip() == "":
+                    break
+                if "VEC" in line.upper():
                     newlatticevec(line)
                 else:
                     newatom(line)
@@ -1109,43 +1115,43 @@ class Molecule (object):
                     begin = False
                     i = 1
                     if line:
-                        self.properties['comment'] = line.rstrip()
+                        self.properties["comment"] = line.rstrip()
                 else:
                     if i <= n:
                         newatom(line)
                         i += 1
-                    elif 'VEC' in line.upper():
-                       newlatticevec(line)
+                    elif "VEC" in line.upper():
+                        newlatticevec(line)
                     else:
                         break
         if not nohead and fr > 0:
-            raise FileError('readxyz: There are only %i frames in %s' % (frame - fr, f.name))
-
+            raise FileError(
+                "readxyz: There are only %i frames in %s" % (frame - fr, f.name)
+            )
 
     def writexyz(self, f):
-        f.write(str(len(self)) + '\n')
-        if 'comment' in self.properties:
-            comment = self.properties['comment']
+        f.write(str(len(self)) + "\n")
+        if "comment" in self.properties:
+            comment = self.properties["comment"]
             if isinstance(comment, list):
                 comment = comment[0]
             f.write(comment)
-        f.write('\n')
+        f.write("\n")
         for at in self.atoms:
-            f.write(str(at) + '\n')
-        for i,vec in enumerate(self.lattice):
-            f.write('VEC'+str(i+1) + '%14.6f %14.6f %14.6f\n'%tuple(vec))
-
+            f.write(str(at) + "\n")
+        for i, vec in enumerate(self.lattice):
+            f.write("VEC" + str(i + 1) + "%14.6f %14.6f %14.6f\n" % tuple(vec))
 
     def readmol(self, f, frame):
         if frame != 1:
-            raise FileError('readmol: .mol files do not support multiple geometries')
+            raise FileError("readmol: .mol files do not support multiple geometries")
 
         comment = []
         for i in range(4):
             line = f.readline().rstrip()
             if line:
                 spl = line.split()
-                if spl[len(spl)-1] == 'V2000':
+                if spl[len(spl) - 1] == "V2000":
                     natom = int(spl[0])
                     nbond = int(spl[1])
                     for j in range(natom):
@@ -1166,79 +1172,100 @@ class Molecule (object):
                             ordr = Bond.AR
                         self.add_bond(Bond(atom1=at1, atom2=at2, order=ordr))
                     break
-                elif spl[len(spl)-1] == 'V3000':
-                    raise FileError('readmol: Molfile V3000 not supported. Please convert')
+                elif spl[len(spl) - 1] == "V3000":
+                    raise FileError(
+                        "readmol: Molfile V3000 not supported. Please convert"
+                    )
                 else:
                     comment.append(line)
         if comment:
-            self.properties['comment'] = comment
-
-
+            self.properties["comment"] = comment
 
     def writemol(self, f):
-        commentblock = ['\n']*3
-        if 'comment' in self.properties:
-            comment = self.properties['comment']
+        commentblock = ["\n"] * 3
+        if "comment" in self.properties:
+            comment = self.properties["comment"]
             if isinstance(comment, str):
-                commentblock[0] = comment + '\n'
+                commentblock[0] = comment + "\n"
             elif isinstance(comment, list):
                 comment = comment[0:3]
                 while len(comment) < 3:
-                    comment.append('')
-                commentblock = [a+b for a,b in zip(comment,commentblock)]
+                    comment.append("")
+                commentblock = [a + b for a, b in zip(comment, commentblock)]
         f.writelines(commentblock)
 
         self.set_atoms_id()
 
-        f.write('%3i%3i  0  0  0  0  0  0  0  0999 V2000\n' % (len(self.atoms),len(self.bonds)))
+        f.write(
+            "%3i%3i  0  0  0  0  0  0  0  0999 V2000\n"
+            % (len(self.atoms), len(self.bonds))
+        )
         for at in self.atoms:
-            f.write('%10.4f%10.4f%10.4f %-3s 0  0  0  0  0  0\n' % (at.x,at.y,at.z,at.symbol))
+            f.write(
+                "%10.4f%10.4f%10.4f %-3s 0  0  0  0  0  0\n"
+                % (at.x, at.y, at.z, at.symbol)
+            )
         for bo in self.bonds:
             order = bo.order
             if order == Bond.AR:
                 order = 4
-            f.write('%3i%3i%3i  0  0  0\n' % (bo.atom1.id,bo.atom2.id,order))
+            f.write("%3i%3i%3i  0  0  0\n" % (bo.atom1.id, bo.atom2.id, order))
         self.unset_atoms_id()
-        f.write('M  END\n')
-
-
+        f.write("M  END\n")
 
     def readmol2(self, f, frame):
         if frame != 1:
-            raise MoleculeError('readmol: .mol2 files do not support multiple geometries')
+            raise MoleculeError(
+                "readmol: .mol2 files do not support multiple geometries"
+            )
 
-        bondorders = {'1':1, '2':2, '3':3, 'am':1, 'ar':Bond.AR, 'du':0, 'un':1, 'nc':0}
-        mode = ('', 0)
+        bondorders = {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "am": 1,
+            "ar": Bond.AR,
+            "du": 0,
+            "un": 1,
+            "nc": 0,
+        }
+        mode = ("", 0)
         for i, line in enumerate(f):
             line = line.rstrip()
             if not line:
                 continue
-            elif line[0] == '#':
+            elif line[0] == "#":
                 continue
-            elif line[0] == '@':
-                line = line.partition('>')[2]
+            elif line[0] == "@":
+                line = line.partition(">")[2]
                 if not line:
-                    raise FileError('readmol2: Error in %s line %i: invalid @ record' % (f.name, str(i+1)))
+                    raise FileError(
+                        "readmol2: Error in %s line %i: invalid @ record"
+                        % (f.name, str(i + 1))
+                    )
                 mode = (line, i)
 
-            elif mode[0] == 'MOLECULE':
+            elif mode[0] == "MOLECULE":
                 pos = i - mode[1]
                 if pos == 1:
-                    self.properties['name'] = line
+                    self.properties["name"] = line
                 elif pos == 3:
-                    self.properties['type'] = line
+                    self.properties["type"] = line
                 elif pos == 4:
-                    self.properties['charge_type'] = line
+                    self.properties["charge_type"] = line
                 elif pos == 5:
-                    self.properties['flags'] = line
+                    self.properties["flags"] = line
                 elif pos == 6:
-                    self.properties['comment'] = line
+                    self.properties["comment"] = line
 
-            elif mode[0] == 'ATOM':
+            elif mode[0] == "ATOM":
                 spl = line.split()
                 if len(spl) < 6:
-                    raise FileError('readmol2: Error in %s line %i: not enough values in line' % (f.name, str(i+1)))
-                symb = spl[5].partition('.')[0]
+                    raise FileError(
+                        "readmol2: Error in %s line %i: not enough values in line"
+                        % (f.name, str(i + 1))
+                    )
+                symb = spl[5].partition(".")[0]
                 try:
                     num = PT.get_atomic_number(symb)
                 except PTError:
@@ -1246,110 +1273,120 @@ class Molecule (object):
                 crd = tuple(map(float, spl[2:5]))
                 newatom = Atom(atnum=num, coords=crd, name=spl[1], type=spl[5])
                 if len(spl) > 6:
-                    newatom.properties['subst_id'] = spl[6]
+                    newatom.properties["subst_id"] = spl[6]
                 if len(spl) > 7:
-                    newatom.properties['subst_name'] = spl[7]
+                    newatom.properties["subst_name"] = spl[7]
                 if len(spl) > 8:
-                    newatom.properties['charge'] = float(spl[8])
+                    newatom.properties["charge"] = float(spl[8])
                 if len(spl) > 9:
-                    newatom.properties['flags'] = spl[9]
+                    newatom.properties["flags"] = spl[9]
                 self.add_atom(newatom)
 
-            elif mode[0] == 'BOND':
+            elif mode[0] == "BOND":
                 spl = line.split()
                 if len(spl) < 4:
-                    raise FileError('readmol2: Error in %s line %i: not enough values in line' % (f.name, str(i+1)))
+                    raise FileError(
+                        "readmol2: Error in %s line %i: not enough values in line"
+                        % (f.name, str(i + 1))
+                    )
                 try:
-                    atom1 = self.atoms[int(spl[1])-1]
-                    atom2 = self.atoms[int(spl[2])-1]
+                    atom1 = self.atoms[int(spl[1]) - 1]
+                    atom2 = self.atoms[int(spl[2]) - 1]
                 except IndexError:
-                    raise FileError('readmol2: Error in %s line %i: wrong atom ID' % (f.name, str(i+1)))
+                    raise FileError(
+                        "readmol2: Error in %s line %i: wrong atom ID"
+                        % (f.name, str(i + 1))
+                    )
                 newbond = Bond(atom1, atom2, order=bondorders[spl[3]])
                 if len(spl) > 4:
-                    for flag in spl[4].split('|'):
+                    for flag in spl[4].split("|"):
                         newbond.properties[flag] = True
                 self.add_bond(newbond)
 
-
-
     def writemol2(self, f):
-        bondorders = ['1','2','3','ar']
+        bondorders = ["1", "2", "3", "ar"]
 
         def write_prop(name, obj, separator, space=0, replacement=None):
-            form_str = '%-' + str(space) + 's'
+            form_str = "%-" + str(space) + "s"
             if name in obj.properties:
                 f.write(form_str % str(obj.properties[name]))
             elif replacement is not None:
                 f.write(form_str % str(replacement))
             f.write(separator)
 
-        f.write('@<TRIPOS>MOLECULE\n')
-        write_prop('name', self, '\n')
-        f.write('%i %i\n' % (len(self.atoms),len(self.bonds)))
-        write_prop('type', self, '\n')
-        write_prop('charge_type', self, '\n')
-        write_prop('flags', self, '\n')
-        write_prop('comment', self, '\n')
+        f.write("@<TRIPOS>MOLECULE\n")
+        write_prop("name", self, "\n")
+        f.write("%i %i\n" % (len(self.atoms), len(self.bonds)))
+        write_prop("type", self, "\n")
+        write_prop("charge_type", self, "\n")
+        write_prop("flags", self, "\n")
+        write_prop("comment", self, "\n")
 
-        f.write('\n@<TRIPOS>ATOM\n')
-        for i,at in enumerate(self.atoms):
-            f.write('%5i ' % (i+1))
-            write_prop('name', at, ' ', 5, at.symbol+str(i+1))
-            f.write('%10.4f %10.4f %10.4f ' % at.coords)
-            write_prop('type', at, ' ', 5, at.symbol)
-            write_prop('subst_id', at, ' ', 5)
-            write_prop('subst_name', at, ' ', 7)
-            write_prop('charge', at, ' ', 6)
-            write_prop('flags', at, '\n')
-            at.id = i+1
+        f.write("\n@<TRIPOS>ATOM\n")
+        for i, at in enumerate(self.atoms):
+            f.write("%5i " % (i + 1))
+            write_prop("name", at, " ", 5, at.symbol + str(i + 1))
+            f.write("%10.4f %10.4f %10.4f " % at.coords)
+            write_prop("type", at, " ", 5, at.symbol)
+            write_prop("subst_id", at, " ", 5)
+            write_prop("subst_name", at, " ", 7)
+            write_prop("charge", at, " ", 6)
+            write_prop("flags", at, "\n")
+            at.id = i + 1
 
-        f.write('\n@<TRIPOS>BOND\n')
-        for i,bo in enumerate(self.bonds):
-            f.write('%5i %5i %5i %4s' % (i+1, bo.atom1.id, bo.atom2.id, bondorders[bo.order]))
-            write_prop('flags', bo, '\n')
+        f.write("\n@<TRIPOS>BOND\n")
+        for i, bo in enumerate(self.bonds):
+            f.write(
+                "%5i %5i %5i %4s"
+                % (i + 1, bo.atom1.id, bo.atom2.id, bondorders[bo.order])
+            )
+            write_prop("flags", bo, "\n")
 
         self.unset_atoms_id()
-
-
 
     def readpdb(self, f, frame):
         pdb = PDBHandler(f)
         models = pdb.get_models()
         if frame > len(models):
-            raise FileError('readpdb: There are only %i frames in %s' % (len(models), f.name))
+            raise FileError(
+                "readpdb: There are only %i frames in %s" % (len(models), f.name)
+            )
 
-        symbol_columns = [70,6,7,8]
-        for i in models[frame-1]:
-            if i.name in ['ATOM  ','HETATM']:
+        symbol_columns = [70, 6, 7, 8]
+        for i in models[frame - 1]:
+            if i.name in ["ATOM  ", "HETATM"]:
                 x = float(i.value[0][24:32])
                 y = float(i.value[0][32:40])
                 z = float(i.value[0][40:48])
                 for n in symbol_columns:
-                    symbol = i.value[0][n:n+2].strip()
+                    symbol = i.value[0][n : n + 2].strip()
                     try:
                         atnum = PT.get_atomic_number(symbol)
                         break
                     except PTError:
                         if n == symbol_columns[-1]:
-                            raise FileError('readpdb: Unable to deduce the atomic symbol in the following line:\n%s'%(i.name+i.value[0]))
-                self.add_atom(Atom(atnum=atnum,coords=(x,y,z)))
+                            raise FileError(
+                                "readpdb: Unable to deduce the atomic symbol in the following line:\n%s"
+                                % (i.name + i.value[0])
+                            )
+                self.add_atom(Atom(atnum=atnum, coords=(x, y, z)))
 
         return pdb
 
-
-
     def writepdb(self, f):
         pdb = PDBHandler()
-        pdb.add_record(PDBRecord('HEADER'))
+        pdb.add_record(PDBRecord("HEADER"))
         model = []
-        for i,at in enumerate(self.atoms):
-            s = 'ATOM  %5i                   %8.3f%8.3f%8.3f                      %2s  ' % (i+1,at.x,at.y,at.z,at.symbol.upper())
+        for i, at in enumerate(self.atoms):
+            s = (
+                "ATOM  %5i                   %8.3f%8.3f%8.3f                      %2s  "
+                % (i + 1, at.x, at.y, at.z, at.symbol.upper())
+            )
             model.append(PDBRecord(s))
         pdb.add_model(model)
         pdb.add_record(pdb.calc_master())
-        pdb.add_record(PDBRecord('END'))
+        pdb.add_record(PDBRecord("END"))
         pdb.write(f)
-
 
     def read(self, filename, inputformat=None, frame=1):
         """Read molecular coordinates from file.
@@ -1359,19 +1396,17 @@ class Molecule (object):
         If chosen format allows multiple geometries in a single file, *frame* can be used to pick one of them.
         """
         if inputformat is None:
-            fsplit = filename.rsplit('.',1)
+            fsplit = filename.rsplit(".", 1)
             if len(fsplit) == 2:
                 inputformat = fsplit[1]
             else:
-                inputformat = 'xyz'
+                inputformat = "xyz"
         if inputformat in self.__class__._readformat:
-            with open(filename, 'rU') as f:
+            with open(filename, "rU") as f:
                 ret = self._readformat[inputformat](self, f, frame)
             return ret
         else:
-            raise MoleculeError('read: Unsupported file format')
-
-
+            raise MoleculeError("read: Unsupported file format")
 
     def write(self, filename, outputformat=None):
         """Write molecular coordinates to a file.
@@ -1379,24 +1414,28 @@ class Molecule (object):
         *filename* should be a string with a path to the file. If *outputformat* is not ``None``, it should be one of supported formats (keys occurring in class attribute ``_writeformat``). Otherwise, format of the file is deduced from file's extension (for files without extension `xyz` format is assumed).
         """
         if outputformat is None:
-            fsplit = filename.rsplit('.',1)
+            fsplit = filename.rsplit(".", 1)
             if len(fsplit) == 2:
                 outputformat = fsplit[1]
             else:
-                outputformat = 'xyz'
+                outputformat = "xyz"
         if outputformat in self.__class__._writeformat:
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 self._writeformat[outputformat](self, f)
         else:
-            raise MoleculeError('write: Unsupported file format')
+            raise MoleculeError("write: Unsupported file format")
 
-    _readformat = {'xyz':readxyz, 'mol':readmol, 'mol2':readmol2, 'pdb':readpdb}
-    _writeformat = {'xyz':writexyz, 'mol':writemol, 'mol2':writemol2, 'pdb': writepdb}
+    _readformat = {"xyz": readxyz, "mol": readmol, "mol2": readmol2, "pdb": readpdb}
+    _writeformat = {
+        "xyz": writexyz,
+        "mol": writemol,
+        "mol2": writemol2,
+        "pdb": writepdb,
+    }
 
-#===================================================================================================
-#==== JSON IO ======================================================================================
-#===================================================================================================
-
+    # ===================================================================================================
+    # ==== JSON IO ======================================================================================
+    # ===================================================================================================
 
     def as_dict(self):
         """
@@ -1426,8 +1465,15 @@ class Molecule (object):
             :parameter ids: List of unique identifier
             :type      ids: [Int]
             """
-            return [{'coords': at.coords, 'symbol': at.symbol,
-                     'atnum': at.atnum, 'properties': at.properties.as_dict()} for at in mol.atoms]
+            return [
+                {
+                    "coords": at.coords,
+                    "symbol": at.symbol,
+                    "atnum": at.atnum,
+                    "properties": at.properties.as_dict(),
+                }
+                for at in mol.atoms
+            ]
 
         def create_bond_block(mol):
             """
@@ -1452,6 +1498,7 @@ class Molecule (object):
             Properties          Settings
             ==================  =====================
             """
+
             def get_bond_order(bond):
                 if bond.order:
                     return bond.order
@@ -1469,13 +1516,17 @@ class Molecule (object):
                 atom1 = mol.atoms.index(b.atom1)
                 atom2 = mol.atoms.index(b.atom2)
                 order = get_bond_order(b)
-                bond  = {'atom1': atom1, 'atom2': atom2,
-                         'order': order, 'properties': b.properties.as_dict()}
+                bond = {
+                    "atom1": atom1,
+                    "atom2": atom2,
+                    "order": order,
+                    "properties": b.properties.as_dict(),
+                }
                 bonds_list.append(bond)
 
             return bonds_list
 
-        d              = dict()
+        d = dict()
         d["atomBlock"] = create_atom_block(self)
         d["bondBlock"] = create_bond_block(self)
         d["properties"] = self.properties
@@ -1492,27 +1543,25 @@ class Molecule (object):
         :returns: |Molecule|
         """
         # New Molecule instance
-        mol     = cls()
+        mol = cls()
         # dict from unique atom identifiers to numeration
         # inside the molecule
 
         # Reconstruct the Atom instances using the Json data
         for at in atomBlock:
-            atnum     = at["atnum"]
-            coords    = at["coords"]
-            symbol    = at["symbol"]
-            props     = at["properties"]
-            mol.add_atom(Atom(atnum=atnum, coords=coords, symbol=symbol,
-                              **props))
+            atnum = at["atnum"]
+            coords = at["coords"]
+            symbol = at["symbol"]
+            props = at["properties"]
+            mol.add_atom(Atom(atnum=atnum, coords=coords, symbol=symbol, **props))
         # Reconstruct the bonds using the internal numeration of the molecule
         # build in  the previous step.
         for b in bondBlock:
             id_atom1 = b["atom1"]
             id_atom2 = b["atom2"]
-            atom1    = mol.atoms[id_atom1]
-            atom2    = mol.atoms[id_atom2]
-            bond = Bond(atom1=atom1, atom2=atom2, order=b["order"],
-                        **b["properties"])
+            atom1 = mol.atoms[id_atom1]
+            atom2 = mol.atoms[id_atom2]
+            bond = Bond(atom1=atom1, atom2=atom2, order=b["order"], **b["properties"])
             mol.add_bond(bond)
 
         mol.properties = properties

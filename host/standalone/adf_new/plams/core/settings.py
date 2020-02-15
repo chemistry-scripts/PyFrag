@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 
 import inspect
 
-__all__ = ['Settings']
+__all__ = ["Settings"]
+
 
 class Settings(dict):
     """Automatic multi-level dictionary. Subclass of built-in :class:`dict`.
@@ -39,13 +40,12 @@ class Settings(dict):
           2:    b2
 
     """
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
-        for k,v in self.items():
+        for k, v in self.items():
             if isinstance(v, dict):
                 self[k] = Settings(v)
-
-
 
     def __missing__(self, name):
         """When requested key is not present, add it with an empty |Settings| instance as a value.
@@ -60,58 +60,50 @@ class Settings(dict):
         self[name] = Settings()
         return self[name]
 
-
-
     def __setitem__(self, name, value):
         """Like regular __setitem__, but if the value is a dict, convert it to |Settings|."""
         if isinstance(value, dict):
             value = Settings(value)
         dict.__setitem__(self, name, value)
 
-
-
     def __getattr__(self, name):
         """If name is not a magic method, redirect it to __getitem__."""
-        if (name.startswith('__') and name.endswith('__')):
+        if name.startswith("__") and name.endswith("__"):
             return dict.__getattr__(self, name)
         return self[name]
 
     def __setattr__(self, name, value):
         """If name is not a magic method, redirect it to __setitem__."""
-        if name.startswith('__') and name.endswith('__'):
+        if name.startswith("__") and name.endswith("__"):
             dict.__setattr__(self, name, value)
         self[name] = value
 
     def __delattr__(self, name):
         """If name is not a magic method, redirect it to __delitem__."""
-        if name.startswith('__') and name.endswith('__'):
+        if name.startswith("__") and name.endswith("__"):
             dict.__delattr__(self, name)
         del self[name]
 
-
-
     def _str(self, indent):
         """Print contents with *indent* spaces of indentation. Recursively used for printing nested |Settings| instances with proper indentation."""
-        ret = ''
+        ret = ""
         for name in self:
             value = self[name]
-            ret += ' '*indent + str(name) + ': \t'
+            ret += " " * indent + str(name) + ": \t"
             if isinstance(value, Settings):
-                ret += '\n' + value._str(indent+len(str(name))+1)
+                ret += "\n" + value._str(indent + len(str(name)) + 1)
             else:
-                ret += str(value) + '\n'
+                ret += str(value) + "\n"
         return ret
 
-    def __str__(self): return self._str(0)
+    def __str__(self):
+        return self._str(0)
+
     __repr__ = __str__
-
-
 
     def __iter__(self):
         """Iteration through keys follows lexicographical order."""
         return iter(sorted(self.keys()))
-
-
 
     def __reduce__(self):
         """Magic method used when an instance of |Settings| is pickled.
@@ -120,13 +112,15 @@ class Settings(dict):
 
         |Settings| instances are present in many different places of PLAMS environment. Usually values stored in them are simple numbers, strings or booleans. However, in some contexts other type of objects are stored and it sometimes causes problems with pickling. Problematic objects can then define ``_settings_reduce`` method to avoid failure on pickle attempt.
         """
-        a,(b,c,d) = dict.__reduce__(self)
+        a, (b, c, d) = dict.__reduce__(self)
         for key in d:
-            if not isinstance(d[key], Settings) and not inspect.isclass(d[key]) and hasattr(d[key], '_settings_reduce'):
+            if (
+                not isinstance(d[key], Settings)
+                and not inspect.isclass(d[key])
+                and hasattr(d[key], "_settings_reduce")
+            ):
                 d[key] = d[key]._settings_reduce()
-        return a,(b,c,d)
-
-
+        return a, (b, c, d)
 
     def copy(self):
         """Return a new instance that is a copy of this one. Nested |Settings| instances are copied recursively, not linked.
@@ -167,8 +161,6 @@ class Settings(dict):
             else:
                 ret[name] = self[name]
         return ret
-
-
 
     def soft_update(self, other):
         """Update this instance with data from *other*, but do not overwrite existing keys. Nested |Settings| instances are soft-updated recursively.
@@ -211,8 +203,6 @@ class Settings(dict):
                 self[name] = other[name]
         return self
 
-
-
     def update(self, other):
         """Update this instance with data from *other*, overwriting existing keys. Nested |Settings| instances are updated recursively.
 
@@ -251,8 +241,6 @@ class Settings(dict):
             else:
                 self[name] = other[name]
 
-
-
     def merge(self, other):
         """Return new instance of |Settings| that is a copy of this instance soft-updated with *other*.
 
@@ -261,8 +249,6 @@ class Settings(dict):
         ret = self.copy()
         ret.soft_update(other)
         return ret
-
-
 
     def find_case(self, key):
         """Check if this instance contains a key consisting of the same letters as *key*, but possibly with different case. If found, return such a key. If not, return *key*.
@@ -292,8 +278,6 @@ class Settings(dict):
                 return k
         return key
 
-
-
     def as_dict(self):
         """
         Transform a |Settings| object into a dict.
@@ -306,7 +290,6 @@ class Settings(dict):
                 d[k] = v.as_dict()
 
         return d
-
 
     __iadd__ = soft_update
     __add__ = merge

@@ -1,10 +1,10 @@
-
-__all__ = ['Distance', 'Angle', 'Dihedral', 'PES']
+__all__ = ["Distance", "Angle", "Dihedral", "PES"]
 
 from qmworks import templates, molkit
 from qmworks.settings import Settings
 from noodles import gather, schedule
-#from plams import Molecule
+
+# from plams import Molecule
 from qmworks.plams import Molecule
 from rdkit.Chem import AllChem
 
@@ -13,6 +13,7 @@ class Distance:
     """
     Class defining an atomic distance
     """
+
     def __init__(self, atom1, atom2):
         self.atom1 = atom1
         self.atom2 = atom2
@@ -27,7 +28,7 @@ class Distance:
         s = Settings()
         if value is None:
             if mol is None:
-                msg = 'Distance constraint settings requires a value or molecule'
+                msg = "Distance constraint settings requires a value or molecule"
                 raise RuntimeError(msg)
             else:
                 value = self.get_current_value(mol)
@@ -39,6 +40,7 @@ class Angle:
     """
     Class defining an atomic angle
     """
+
     def __init__(self, atom1, atom2, atom3):
         self.atom1 = atom1
         self.atom2 = atom2
@@ -57,17 +59,21 @@ class Angle:
         s = Settings()
         if value is None:
             if mol is None:
-                msg = 'Angle constraint settings requires a value or molecule'
+                msg = "Angle constraint settings requires a value or molecule"
                 raise RuntimeError(msg)
             else:
                 value = self.get_current_value(mol)
-                s["angle {:d} {:d} {:d}".format(self.atom1, self.atom2, self.atom3)] = value
+                s[
+                    "angle {:d} {:d} {:d}".format(self.atom1, self.atom2, self.atom3)
+                ] = value
         return s
+
 
 class Dihedral:
     """
     Class defining an atomic dihedral angle
     """
+
     def __init__(self, atom1, atom2, atom3, atom4):
         self.atom1 = atom1
         self.atom2 = atom2
@@ -79,27 +85,42 @@ class Dihedral:
             mol = molkit.to_rdmol(mol)
         conf = mol.GetConformer()
         if rad:
-            return AllChem.GetDihedralRad(conf, self.atom1, self.atom2, self.atom3, self.atom4)
+            return AllChem.GetDihedralRad(
+                conf, self.atom1, self.atom2, self.atom3, self.atom4
+            )
         else:
-            return AllChem.GetDihedralDeg(conf, self.atom1, self.atom2, self.atom3, self.atom4)
+            return AllChem.GetDihedralDeg(
+                conf, self.atom1, self.atom2, self.atom3, self.atom4
+            )
 
     def get_settings(self, value=None, mol=None):
         s = Settings()
         if value is None:
             if mol is None:
-                msg = 'Dihedral constraint settings requires a value or molecule'
+                msg = "Dihedral constraint settings requires a value or molecule"
                 raise RuntimeError(msg)
             else:
                 value = self.get_current_value(mol)
-        s["dihed {:d} {:d} {:d} {:d}".format(self.atom1, self.atom2, self.atom3, self.atom4)] = value
+        s[
+            "dihed {:d} {:d} {:d} {:d}".format(
+                self.atom1, self.atom2, self.atom3, self.atom4
+            )
+        ] = value
         return s
-
 
 
 @schedule
 class PES:
-    def __init__(self, molecule=None, constraints=None, offset=None, get_current_values=False,
-                 nsteps=0, stepsize=0.0, nested_PES=None):
+    def __init__(
+        self,
+        molecule=None,
+        constraints=None,
+        offset=None,
+        get_current_values=False,
+        nsteps=0,
+        stepsize=0.0,
+        nested_PES=None,
+    ):
         self.molecule = molkit.to_rdmol(molecule)
         self.constraints = constraints
         if isinstance(constraints, list):
@@ -164,13 +185,18 @@ class PES:
     def pes_job(self, package, settings, job_name):
         if isinstance(package, list):
             name = job_name + "_opt"
-            optimized_mol = package[0](templates.geometry.overlay(settings),
-                                       self.molecule, job_name=name).molecule
-            result = package[1](templates.singlepoint.overlay(settings),
-                                optimized_mol, job_name=job_name)
+            optimized_mol = package[0](
+                templates.geometry.overlay(settings), self.molecule, job_name=name
+            ).molecule
+            result = package[1](
+                templates.singlepoint.overlay(settings),
+                optimized_mol,
+                job_name=job_name,
+            )
         else:
-            result = package(templates.geometry.overlay(settings), self.molecule,
-                             job_name=job_name)
+            result = package(
+                templates.geometry.overlay(settings), self.molecule, job_name=job_name
+            )
         return result
 
     def get_constraint_settings(self, step):
@@ -178,8 +204,12 @@ class PES:
         if isinstance(self.constraints, list):
             for c in range(len(self.constraints)):
                 s.constraint.update(
-                    self.constraints[c].get_settings(self.start[c] +
-                                                     self.stepsize[c] * step))
+                    self.constraints[c].get_settings(
+                        self.start[c] + self.stepsize[c] * step
+                    )
+                )
         else:
-            s.constraint = self.constraints.get_settings(self.start + self.stepsize * step)
+            s.constraint = self.constraints.get_settings(
+                self.start + self.stepsize * step
+            )
         return s

@@ -1,13 +1,14 @@
-
-__all__ = ['freq', 'geometry', 'singlepoint', 'ts', 'get_template', 'fa', 'frag', 'irc']
+__all__ = ["freq", "geometry", "singlepoint", "ts", "get_template", "fa", "frag", "irc"]
 
 # ================> Python Standard  and third-party <==========
 
 from os.path import join
 import json
 import pkg_resources as pkg
+
 #  ==================> Internal Modules  <=====================
 from qmworks.utils import dict2Setting
+
 # ==================================================
 
 
@@ -33,10 +34,10 @@ def get_template(template_name):
 
 
 # Generic Templates
-singlepoint = get_template('singlepoint.json')
-geometry = get_template('geometry.json')
-ts = get_template('ts.json')
-freq = get_template('freq.json')
-irc  = get_template('irc.json')
-fa   = get_template('complex.json')
-frag = get_template('fragment.json')
+singlepoint = get_template("singlepoint.json")
+geometry = get_template("geometry.json")
+ts = get_template("ts.json")
+freq = get_template("freq.json")
+irc = get_template("irc.json")
+fa = get_template("complex.json")
+frag = get_template("fragment.json")

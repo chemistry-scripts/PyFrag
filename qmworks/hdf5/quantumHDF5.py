@@ -1,6 +1,4 @@
-
-__all__ = ['StoreasHDF5', 'cp2k2hdf5', 'read_from_hdf5',
-           'turbomole2hdf5']
+__all__ = ["StoreasHDF5", "cp2k2hdf5", "read_from_hdf5", "turbomole2hdf5"]
 
 # ==========> Standard libraries and third-party <===============
 from functools import partial
@@ -8,6 +6,7 @@ from os.path import join
 
 import h5py
 import numpy as np
+
 # ==================> Internal modules <==========
 from qmworks.parsers.cp2KParser import readCp2KBasis
 from qmworks.parsers.turbomoleParser import readTurbomoleBasis
@@ -17,7 +16,7 @@ from qmworks.parsers.turbomoleParser import readTurbomoleBasis
 
 def read_from_hdf5(path_hdf5, path_to_properties):
     try:
-        with h5py.File(path_hdf5, 'r') as f5:
+        with h5py.File(path_hdf5, "r") as f5:
             if isinstance(path_to_properties, list):
                 return [f5[path].value for path in path_to_properties]
             else:
@@ -34,6 +33,7 @@ class StoreasHDF5:
     """
     Class to store inside a HDF5 file numerical array with optional attributes.
     """
+
     def __init__(self, file_h5, packageName):
         self.file_h5 = file_h5
         self.name = packageName
@@ -49,8 +49,9 @@ class StoreasHDF5:
         :type data: Numpy array
         :returns: **None**
         """
-        self.file_h5.require_dataset(pathProperty, shape=np.shape(data),
-                                     data=data, dtype=np.float32)
+        self.file_h5.require_dataset(
+            pathProperty, shape=np.shape(data), data=data, dtype=np.float32
+        )
 
     def funHDF5_attrs(self, nameAttr, attr, pathProperty, data):
         """
@@ -67,8 +68,9 @@ class StoreasHDF5:
         :returns: **None**
         """
 
-        dset = self.file_h5.require_dataset(pathProperty, shape=np.shape(data),
-                                            data=data, dtype=np.float32)
+        dset = self.file_h5.require_dataset(
+            pathProperty, shape=np.shape(data), data=data, dtype=np.float32
+        )
         dset.attrs[nameAttr] = attr
 
     def saveBasis(self, parserFun, pathBasis):
@@ -85,10 +87,12 @@ class StoreasHDF5:
         """
 
         keys, vals = parserFun(pathBasis)
-        pathsExpo = [join(self.name, "basis", xs.atom, xs.basis, "exponents")
-                     for xs in keys]
-        pathsCoeff = [join(self.name, "basis", xs.atom, xs.basis,
-                           "coefficients") for xs in keys]
+        pathsExpo = [
+            join(self.name, "basis", xs.atom, xs.basis, "exponents") for xs in keys
+        ]
+        pathsCoeff = [
+            join(self.name, "basis", xs.atom, xs.basis, "coefficients") for xs in keys
+        ]
 
         for ps, es in zip(pathsExpo, [xs.exponents for xs in vals]):
             self.funHDF5(ps, es)
@@ -103,6 +107,7 @@ class StoreasHDF5:
 
 # =======================================================
 # CP2K Interface
+
 
 def cp2k2hdf5(file_h5, keys):
     """

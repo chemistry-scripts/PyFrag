@@ -46,40 +46,41 @@ class ORCAJob(SingleJob):
         job.settings.input.basis.NewGTO._end = "26 \"CP(PPP)\""
         job.settings.input.basis.NewAuxGTO._end = "26 \"TZV/J\""
         """
+
         def get_end(s):
-            if (not isinstance(s, Settings)) or ('_end' not in s):
+            if (not isinstance(s, Settings)) or ("_end" not in s):
                 return s
             else:
-                return '{} end'.format(s['_end'])
+                return "{} end".format(s["_end"])
 
         def pretty_print_inner(s, indent):
-            inp = ''
+            inp = ""
             for i, (key, value) in enumerate(s.items()):
                 end = get_end(value)
                 if i == 0:
-                    inp += ' {} {}\n'.format(key, end)
+                    inp += " {} {}\n".format(key, end)
                 else:
-                    inp += '{}{} {}\n'.format(indent, key, end)
+                    inp += "{}{} {}\n".format(indent, key, end)
             return inp
 
-        def pretty_print_orca(s, indent=''):
-            inp = ''
+        def pretty_print_orca(s, indent=""):
+            inp = ""
             if isinstance(s, Settings):
                 for k, v in s.items():
-                    if k == 'main':
-                        inp += '! {}\n\n'.format(pretty_print_orca(v, indent))
+                    if k == "main":
+                        inp += "! {}\n\n".format(pretty_print_orca(v, indent))
                     else:
-                        indent2 = (len(k) + 2) * ' '
+                        indent2 = (len(k) + 2) * " "
                         if not isinstance(v, Settings):
                             block = pretty_print_orca(v)
                         else:
                             block = pretty_print_inner(v, indent2)
-                        inp += '%{}{}{}end\n\n'.format(k, block, indent2)
+                        inp += "%{}{}{}end\n\n".format(k, block, indent2)
             elif isinstance(s, list):
                 for elem in s:
-                    inp += '{}'.format(elem)
+                    inp += "{}".format(elem)
             else:
-                inp += '{}'.format(s)
+                inp += "{}".format(s)
             return inp
 
         inp = pretty_print_orca(self.settings.input)
@@ -93,25 +94,29 @@ class ORCAJob(SingleJob):
         """
         mol = self.molecule
         if mol:
-            if 'charge' in mol.properties and isinstance(mol.properties.charge, int):
+            if "charge" in mol.properties and isinstance(mol.properties.charge, int):
                 charge = mol.properties.charge
             else:
                 charge = 0
-            if 'multiplicity' in mol.properties and isinstance(mol.properties.multiplicity, int):
+            if "multiplicity" in mol.properties and isinstance(
+                mol.properties.multiplicity, int
+            ):
                 multi = mol.properties.multiplicity
             else:
                 multi = 1
-            xyz = '\n'.join(at.str(symbol=True, space=11, decimal=5) for at in mol.atoms)
-            return '* xyz {} {}\n{}\n*\n\n'.format(charge, multi, xyz)
+            xyz = "\n".join(
+                at.str(symbol=True, space=11, decimal=5) for at in mol.atoms
+            )
+            return "* xyz {} {}\n{}\n*\n\n".format(charge, multi, xyz)
         else:
-            return ''
+            return ""
 
     def get_runscript(self):
         """
         Running orca is straightforward, simply:
         */absolute/path/to/orca myinput.inp*
         """
-        return 'orca {}'.format(self._filename('inp'))
+        return "orca {}".format(self._filename("inp"))
 
     def check(self):
         """
@@ -119,4 +124,3 @@ class ORCAJob(SingleJob):
         """
         s = self.results.grep_output("ORCA TERMINATED NORMALLY")
         return len(s) > 0
-

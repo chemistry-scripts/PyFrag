@@ -5,6 +5,7 @@ import os
 import functools
 import threading
 import time
+
 try:
     import subprocess32 as subprocess
 except ImportError:
@@ -18,23 +19,29 @@ from .settings import Settings
 from .basejob import SingleJob
 
 
-__all__ = ['JobRunner', 'GridRunner']
+__all__ = ["JobRunner", "GridRunner"]
 
 
 def _in_thread(func):
     """Decorator for an instance method. If ``parallel`` attribute of given instance is ``True``, run decorated method in a separate :class:`~threading.Thread`. This thread is usually a daemon thread, the decision is based on ``config.daemon_threads`` entry."""
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.parallel:
-            t = threading.Thread(name='plamsthread', target=func, args=(self,)+args, kwargs=kwargs)
+            t = threading.Thread(
+                name="plamsthread", target=func, args=(self,) + args, kwargs=kwargs
+            )
             t.daemon = config.daemon_threads
             t.start()
         else:
             func(self, *args, **kwargs)
+
     return wrapper
+
 
 def _limit(func):
     """Decorator for an instance method. If ``semaphore`` attribute of given instance is not ``None``, use this attribute to wrap decorated method via :ref:`with<with-locks>` statement."""
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.semaphore:
@@ -42,13 +49,17 @@ def _limit(func):
                 return func(self, *args, **kwargs)
         else:
             return func(self, *args, **kwargs)
+
     return wrapper
+
 
 class _MetaRunner(type):
     """Metaclass for |JobRunner|. Wraps :meth:`~scm.plams.jobrunner.JobRunner.call` with :func:`_limit` decorator."""
+
     def __new__(meta, name, bases, dct):
-        dct['call'] = _limit(dct['call'])
+        dct["call"] = _limit(dct["call"])
         return type.__new__(meta, name, bases, dct)
+
 
 @add_metaclass(_MetaRunner)
 class JobRunner(object):
@@ -63,10 +74,9 @@ class JobRunner(object):
     A |JobRunner| instance can be passed to |run| with a keyword argument ``jobrunner``. If this argument is omitted, the instance stored in ``config.default_jobrunner`` is used.
     """
 
-    def __init__ (self, parallel=False, maxjobs=0):
+    def __init__(self, parallel=False, maxjobs=0):
         self.parallel = parallel
         self.semaphore = threading.BoundedSemaphore(maxjobs) if maxjobs else None
-
 
     def call(self, runscript, workdir, out, err, **kwargs):
         """call(runscript, workdir, out, err, **kwargs)
@@ -83,20 +93,20 @@ class JobRunner(object):
         .. note::
             This method is used automatically during |run| and should never be explicitly called in your script.
         """
-        log('Executing %s' % runscript, 5)
-        with open(opj(workdir, err), 'w') as e:
-            kwargs = {'cwd':workdir, 'stderr':e}
-            if os.name == 'posix':
-                command = './'+runscript
-                kwargs['close_fds'] = True
+        log("Executing %s" % runscript, 5)
+        with open(opj(workdir, err), "w") as e:
+            kwargs = {"cwd": workdir, "stderr": e}
+            if os.name == "posix":
+                command = "./" + runscript
+                kwargs["close_fds"] = True
             else:
-                command = ['sh', runscript]
+                command = ["sh", runscript]
             if out is not None:
-                kwargs['stdout'] = open(opj(workdir, out), 'w')
+                kwargs["stdout"] = open(opj(workdir, out), "w")
             retcode = subprocess.call(command, **kwargs)
             if out is not None:
-                kwargs['stdout'].close()
-        log('Execution of %s finished with returncode %i' % (runscript, retcode), 5)
+                kwargs["stdout"].close()
+        log("Execution of %s finished with returncode %i" % (runscript, retcode), 5)
         return retcode
 
     @_in_thread
@@ -110,9 +120,10 @@ class JobRunner(object):
             job._execute(self)
             job._finalize()
 
-#===================================================================================================
-#===================================================================================================
-#===================================================================================================
+
+# ===================================================================================================
+# ===================================================================================================
+# ===================================================================================================
 
 
 class GridRunner(JobRunner):
@@ -141,26 +152,33 @@ class GridRunner(JobRunner):
     .. note::
         Usually job schedulers are configured in such a way that output of your job is captured somewhere else and copied to the location indicated by output flag when the job is finished. Because of that it is not possible to have a peek at your output while your job is running (for example to see if your calculation is going well). This limitation can be worked around with ``[Job].settings.runscript.stdout_redirect``. If set to ``True``, the output redirection will not be handled by a job scheduler, but built in the runscript using shell redirection ``>``. That forces the output file to be created directly in *workdir* and updated live as the job proceeds.
     """
-    def __init__(self, grid='auto', sleepstep=None, **kwargs):
+
+    def __init__(self, grid="auto", sleepstep=None, **kwargs):
         JobRunner.__init__(self, **kwargs)
         self.sleepstep = sleepstep or config.sleepstep
 
-        if grid == 'auto':
+        if grid == "auto":
             self.settings = self._autodetect()
         elif grid in config.gridrunner:
             self.settings = config.gridrunner[grid]
-            with open(os.devnull, 'wb') as null:
+            with open(os.devnull, "wb") as null:
                 try:
-                    subprocess.call([self.settings.commands.submit, '--version'], stdout=null, stderr=null)
+                    subprocess.call(
+                        [self.settings.commands.submit, "--version"],
+                        stdout=null,
+                        stderr=null,
+                    )
                 except OSError:
-                    raise PlamsError('GridRunner: %s command not found' %
-                    self.settings.commands.submit)
+                    raise PlamsError(
+                        "GridRunner: %s command not found"
+                        % self.settings.commands.submit
+                    )
         elif isinstance(grid, Settings):
             self.settings = grid
         else:
-            raise PlamsError("GridRunner: invalid 'grid' argument. 'grid' should be either a Settings instance (see documentations for details) or a string occurring in config.gridrunner or 'auto' for autodetection")
-
-
+            raise PlamsError(
+                "GridRunner: invalid 'grid' argument. 'grid' should be either a Settings instance (see documentations for details) or a string occurring in config.gridrunner or 'auto' for autodetection"
+            )
 
     def call(self, runscript, workdir, out, err, runflags, **kwargs):
         """call(runscript, workdir, out, err, runflags, **kwargs)
@@ -212,38 +230,36 @@ class GridRunner(JobRunner):
         """
 
         s = self.settings
-        cmd = ' '.join([s.commands.submit, s.workdir, workdir, s.error, err])
+        cmd = " ".join([s.commands.submit, s.workdir, workdir, s.error, err])
         if out is not None:
-            cmd += ' '+s.output+' '+out
-        for k,v in runflags.items():
+            cmd += " " + s.output + " " + out
+        for k, v in runflags.items():
             if k in s.special:
-                cmd += ' '+s.special[k]+str(v)
+                cmd += " " + s.special[k] + str(v)
             else:
-                cmd += ' -'+k+' '+str(v)
-        cmd += ' ' + opj(workdir,runscript)
+                cmd += " -" + k + " " + str(v)
+        cmd += " " + opj(workdir, runscript)
 
-        log('Submitting %s with command %s' % (runscript, cmd), 5)
-        subout = subprocess.check_output(cmd.split(' '))
+        log("Submitting %s with command %s" % (runscript, cmd), 5)
+        subout = subprocess.check_output(cmd.split(" "))
         subout = string(subout)
-        log('Output of submit command: %s' % subout, 5)
+        log("Output of submit command: %s" % subout, 5)
         jobid = s.commands.getid(subout)
-        log('%s submitted successfully as job %s' % (runscript, jobid), 3)
+        log("%s submitted successfully as job %s" % (runscript, jobid), 3)
 
-        if 'finished' in s.commands:
+        if "finished" in s.commands:
             while not s.commands.finished(jobid):
                 time.sleep(self.sleepstep)
         else:
-            checkcmd = (s.commands.check + jobid).split(' ')
+            checkcmd = (s.commands.check + jobid).split(" ")
             retcode = 0
             while retcode == 0:
                 time.sleep(self.sleepstep)
-                with open(os.devnull, 'wb') as null:
+                with open(os.devnull, "wb") as null:
                     retcode = subprocess.call(checkcmd, stdout=null, stderr=null)
 
-        log('Execution of %s finished' % runscript, 5)
+        log("Execution of %s finished" % runscript, 5)
         return 0
-
-
 
     def _autodetect(self):
         """Try to autodetect the type of job scheduler.
@@ -253,11 +269,16 @@ class GridRunner(JobRunner):
         Returned value is one of ``config.gridrunner`` branches. If autodetection was not successful, an exception is raised.
         """
         for grid in config.gridrunner:
-            with open(os.devnull, 'wb') as null:
+            with open(os.devnull, "wb") as null:
                 try:
-                    retcode = subprocess.call([config.gridrunner[grid].commands.submit, '--version'], stdout=null, stderr=null)
-                except OSError: continue
+                    retcode = subprocess.call(
+                        [config.gridrunner[grid].commands.submit, "--version"],
+                        stdout=null,
+                        stderr=null,
+                    )
+                except OSError:
+                    continue
                 if retcode == 0:
-                    log('Grid type autodetected as ' + grid, 5)
+                    log("Grid type autodetected as " + grid, 5)
                     return config.gridrunner[grid]
-        raise PlamsError('GridRunner: Failed to autodetect grid type')
+        raise PlamsError("GridRunner: Failed to autodetect grid type")

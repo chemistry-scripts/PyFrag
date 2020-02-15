@@ -1,33 +1,44 @@
 __author__ = "Felipe Zapata"
 
 # ===============> Standard libraries and third-party <========================
-#from plams import (Atom, Molecule)
-from qmworks.plams import (Atom, Molecule)
-from pyparsing import (CaselessKeyword, Combine, Literal, nums, Optional,
-                       ParseException, Regex, SkipTo, Suppress, Word)
+# from plams import (Atom, Molecule)
+from qmworks.plams import Atom, Molecule
+from pyparsing import (
+    CaselessKeyword,
+    Combine,
+    Literal,
+    nums,
+    Optional,
+    ParseException,
+    Regex,
+    SkipTo,
+    Suppress,
+    Word,
+)
 import numpy as np
 
 # Literals
-point = Literal('.')
-e = CaselessKeyword('E')
-minusOrplus = Literal('+') | Literal('-')
+point = Literal(".")
+e = CaselessKeyword("E")
+minusOrplus = Literal("+") | Literal("-")
 
 # Parsing Floats
 natural = Word(nums)
 integer = Combine(Optional(minusOrplus) + natural)
-floatNumber = Regex(r'(\-)?\d+(\.)(\d*)?([eE][\-\+]\d+)?')
+floatNumber = Regex(r"(\-)?\d+(\.)(\d*)?([eE][\-\+]\d+)?")
 
-floatNumberDot = Regex(r'(\-)?(\d+)?(\.)(\d*)?([eE][\-\+]\d+)?')
+floatNumberDot = Regex(r"(\-)?(\d+)?(\.)(\d*)?([eE][\-\+]\d+)?")
 
 
 # Parse Utilities
-anyChar     = Regex('.')
+anyChar = Regex(".")
 skipAnyChar = Suppress(anyChar)
 skipSupress = lambda z: Suppress(SkipTo(z))
-skipLine = Suppress(skipSupress('\n'))
+skipLine = Suppress(skipSupress("\n"))
 
 
 # Generic Functions
+
 
 def parse_file(p, file_name):
     """
@@ -45,8 +56,8 @@ def parse_section(start, end):
     """
     Read the lines from `start` to `end`.
     """
-    s = Literal('{}'.format(start))
-    e = Literal('{}'.format(end))
+    s = Literal("{}".format(start))
+    e = Literal("{}".format(end))
 
     return Suppress(SkipTo(s)) + skipLine + SkipTo(e)
 
@@ -75,7 +86,7 @@ def string_array_to_molecule(parser_fun, file_name, mol=None):
             for i in range(len(plams_mol)):
                 plams_mol.atoms[i].coords = tuple([float(c) for c in coords[i]])
         else:
-            raise RuntimeError('Output molecule does not match input molecule')
+            raise RuntimeError("Output molecule does not match input molecule")
     else:
         plams_mol = Molecule()
         for e, c in zip(elems, coords):

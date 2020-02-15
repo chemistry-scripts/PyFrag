@@ -1,49 +1,57 @@
-
 # ========>  Standard and third party Python Libraries <======
 from functools import partial
 from os.path import join
 from rdkit import Chem
-from typing import (Any, Callable, Dict, List)
+from typing import Any, Callable, Dict, List
 
 import base64
 import fnmatch
 import importlib
 import inspect
 import os
-#import plams
+
+# import plams
 from qmworks import plams
 import pkg_resources as pkg
 import builtins
 
 # ==================> Internal modules <====================
-from noodles import (schedule_hint, has_scheduled_methods, serial)
-from noodles.display import (NCDisplay)
-from noodles.files.path import (Path, SerPath)
+from noodles import schedule_hint, has_scheduled_methods, serial
+from noodles.display import NCDisplay
+from noodles.files.path import Path, SerPath
 from noodles.run.run_with_prov import run_parallel_opt
 from noodles.run.runners import run_parallel
-from noodles.serial import (Serialiser, Registry, AsDict)
+from noodles.serial import Serialiser, Registry, AsDict
 from noodles.serial.base import SerStorable
-from noodles.run.xenon import (
-    XenonKeeper, XenonConfig, RemoteJobConfig, run_xenon_prov)
+from noodles.run.xenon import XenonKeeper, XenonConfig, RemoteJobConfig, run_xenon_prov
 from noodles.serial.numpy import arrays_to_hdf5
 
 from qmworks.settings import Settings
 from qmworks import molkit
 from qmworks.fileFunctions import json2Settings
-from qmworks.utils import (concatMap, initialize)
+from qmworks.utils import concatMap, initialize
 from warnings import warn
+
 # ==============================================================
-__all__ = ['import_parser', 'package_properties',
-           'Package', 'run', 'registry', 'Result',
-           'SerMolecule', 'SerSettings','Package_pyfrag']
+__all__ = [
+    "import_parser",
+    "package_properties",
+    "Package",
+    "run",
+    "registry",
+    "Result",
+    "SerMolecule",
+    "SerSettings",
+    "Package_pyfrag",
+]
 
 package_properties = {
-    'adf': 'data/dictionaries/propertiesADF.json',
-    'dftb': 'data/dictionaries/propertiesDFTB.json',
-    'cp2k': 'data/dictionaries/propertiesCP2K.json',
-    'dirac': 'data/dictionaries/propertiesDIRAC.json',
-    'gamess': 'data/dictionaries/propertiesGAMESS.json',
-    'orca': 'data/dictionaries/propertiesORCA.json'
+    "adf": "data/dictionaries/propertiesADF.json",
+    "dftb": "data/dictionaries/propertiesDFTB.json",
+    "cp2k": "data/dictionaries/propertiesCP2K.json",
+    "dirac": "data/dictionaries/propertiesDIRAC.json",
+    "gamess": "data/dictionaries/propertiesGAMESS.json",
+    "orca": "data/dictionaries/propertiesORCA.json",
 }
 
 
@@ -51,8 +59,17 @@ class Result:
     """
     Class containing the result associated with a quantum chemistry simulation.
     """
-    def __init__(self, settings, molecule, job_name, plams_dir=None,
-                 work_dir=None, properties=None, status='done'):
+
+    def __init__(
+        self,
+        settings,
+        molecule,
+        job_name,
+        plams_dir=None,
+        work_dir=None,
+        properties=None,
+        status="done",
+    ):
         """
         :param settings: Job Settings.
         :type settings: :class:`~qmworks.Settings`
@@ -73,8 +90,7 @@ class Result:
         self._molecule = molecule
         xs = pkg.resource_string("qmworks", properties)
         self.prop_dict = json2Settings(xs)
-        self.archive = {"plams_dir": Path(plams_dir),
-                        'work_dir': work_dir}
+        self.archive = {"plams_dir": Path(plams_dir), "work_dir": work_dir}
         self.job_name = job_name
         self.status = status
 
@@ -88,10 +104,10 @@ class Result:
             "molecule": self._molecule,
             "job_name": self.job_name,
             "archive": self.archive,
-            "status": self.status}
+            "status": self.status,
+        }
 
-    def from_dict(cls, settings, molecule, job_name, archive,
-                  status):
+    def from_dict(cls, settings, molecule, job_name, archive, status):
         """
         Methods to deserialize an `Result`` object.
         """
@@ -105,24 +121,31 @@ class Result:
         ..
             dipole = result.dipole
         """
-        crash_status = ['failed', 'crashed']
-        is_private = prop.startswith('__') and prop.endswith('__')
+        crash_status = ["failed", "crashed"]
+        is_private = prop.startswith("__") and prop.endswith("__")
         # if self.status == 'successful':
         if self.status not in crash_status and prop in self.prop_dict:
             return self.get_property(prop)
-        elif (self.status not in crash_status and not is_private and
-              prop not in self.prop_dict):
+        elif (
+            self.status not in crash_status
+            and not is_private
+            and prop not in self.prop_dict
+        ):
             msg = "Generic property '" + str(prop) + "' not defined"
             warn(msg)
             return None
         elif (self.status in crash_status) and not is_private:
-            warn("""
+            warn(
+                """
             It is not possible to retrieve property: '{}'
             Because Job: '{}' has failed. Check the output.\n
             Are you sure that you have the package installed or
              you have loaded the package in the cluster. For example:
             `module load AwesomeQuantumPackage/3.1421`
-            """.format(prop, self.job_name))
+            """.format(
+                    prop, self.job_name
+                )
+            )
             return None
 
     def get_property(self, prop):
@@ -134,31 +157,34 @@ class Result:
         ds = self.prop_dict[prop]
 
         # extension of the output file containing the property value
-        file_ext = ds['file_ext']
+        file_ext = ds["file_ext"]
 
         # If there is not work_dir returns None
-        work_dir = self.archive.get('work_dir')
+        work_dir = self.archive.get("work_dir")
 
         # Plams dir
-        plams_dir = self.archive['plams_dir'].path
+        plams_dir = self.archive["plams_dir"].path
 
         # Search for the specified output file in the folders
-        file_pattern = ds.get('file_pattern')
+        file_pattern = ds.get("file_pattern")
         if file_pattern is None:
-            file_pattern = '{}.{}'.format(self.job_name, file_ext)
+            file_pattern = "{}.{}".format(self.job_name, file_ext)
 
-        output_files = concatMap(partial(find_file_pattern, file_pattern),
-                                 [plams_dir, work_dir])
+        output_files = concatMap(
+            partial(find_file_pattern, file_pattern), [plams_dir, work_dir]
+        )
         if output_files:
             file_out = output_files[0]
-            fun = getattr(import_parser(ds), ds['function'])
+            fun = getattr(import_parser(ds), ds["function"])
             # Read the keywords arguments from the properties dictionary
-            kwargs = ds.get('kwargs') if ds.get('kwargs') is not None else {}
-            kwargs['plams_dir'] = plams_dir
+            kwargs = ds.get("kwargs") if ds.get("kwargs") is not None else {}
+            kwargs["plams_dir"] = plams_dir
             return ignored_unused_kwargs(fun, [file_out], kwargs)
         else:
             msg = "Property {} not found. No output file \
-            called: {}.\n".format(prop, file_pattern)
+            called: {}.\n".format(
+                prop, file_pattern
+            )
             raise FileNotFoundError(msg)
 
 
@@ -173,14 +199,15 @@ class Package:
 
     Only two arguments are required
     """
+
     def __init__(self, pkg_name):
         super(Package, self).__init__()
         self.pkg_name = pkg_name
 
     @schedule_hint(
-        display="Running {self.pkg_name} {job_name}...",
-        store=True, confirm=True)
-    def __call__(self, settings, mol, job_name='', **kwargs):
+        display="Running {self.pkg_name} {job_name}...", store=True, confirm=True
+    )
+    def __call__(self, settings, mol, job_name="", **kwargs):
         """
         This function performs a job with the package specified by
         self.pkg_name
@@ -201,8 +228,8 @@ class Package:
                 if isinstance(mol, Chem.Mol):
                     mol = molkit.from_rdmol(mol)
 
-                if job_name != '':
-                    kwargs['job_name'] = job_name
+                if job_name != "":
+                    kwargs["job_name"] = job_name
 
                 # Settings transformations
                 job_settings = self.generic2specific(settings, mol)
@@ -212,13 +239,19 @@ class Package:
                 result = self.run_job(job_settings, mol, **kwargs)
             # Otherwise pass an empty Result instance
             except plams.PlamsError:
-                result = Result(None, None, job_name=job_name,
-                                properties=properties, status='failed')
+                result = Result(
+                    None,
+                    None,
+                    job_name=job_name,
+                    properties=properties,
+                    status="failed",
+                )
             # except Exception as e:
             #     print("Exception e: ", type(e), e.args)
         else:
-            result = Result(None, None, job_name=job_name,
-                            properties=properties, status='failed')
+            result = Result(
+                None, None, job_name=job_name, properties=properties, status="failed"
+            )
 
         # Label this calculation as failed if there are not dependecies coming
         # from upstream
@@ -259,14 +292,13 @@ class Package:
                     if v:
                         if isinstance(v, dict):
                             v = Settings(v)
-                        specific_from_generic_settings \
-                            .specific[self.pkg_name][key] = v
+                        specific_from_generic_settings.specific[self.pkg_name][key] = v
                     else:
-                        specific_from_generic_settings \
-                            .specific[self.pkg_name][key]
+                        specific_from_generic_settings.specific[self.pkg_name][key]
                 else:
                     self.handle_special_keywords(
-                        specific_from_generic_settings, k, v, mol)
+                        specific_from_generic_settings, k, v, mol
+                    )
         return settings.overlay(specific_from_generic_settings)
 
     def get_generic_dict(self):
@@ -300,7 +332,6 @@ class Package:
         raise NotImplementedError(msg)
 
 
-
 @has_scheduled_methods
 class Package_pyfrag:
     """
@@ -312,15 +343,25 @@ class Package_pyfrag:
 
     Only two arguments are required
     """
+
     def __init__(self, pkg_name):
         super(Package_pyfrag, self).__init__()
         self.pkg_name = pkg_name
 
     @schedule_hint(
-        display="Running {self.pkg_name} {job_name}...",
-        store=True, confirm=True)
-
-    def __call__(self, settings, settings_2 = None, settings_3 = None, inputArgues=None, inputArgues1=None,inputArgues2=None,job_name='', **kwargs):
+        display="Running {self.pkg_name} {job_name}...", store=True, confirm=True
+    )
+    def __call__(
+        self,
+        settings,
+        settings_2=None,
+        settings_3=None,
+        inputArgues=None,
+        inputArgues1=None,
+        inputArgues2=None,
+        job_name="",
+        **kwargs
+    ):
         """
         This function performs a job with the package specified by
         self.pkg_name
@@ -331,24 +372,27 @@ class Package_pyfrag:
         :type mol: plams Molecule
         """
 
-        if job_name != '':
-            kwargs['job_name'] = job_name
-
-
+        if job_name != "":
+            kwargs["job_name"] = job_name
 
         self.prerun()
 
         Fragment1Settings = self.generic2specific(settings)
         Fragment2Settings = self.generic2specific(settings_2)
-        ComplexSettings  = self.generic2specific(settings_3)
+        ComplexSettings = self.generic2specific(settings_3)
 
-
-        result = self.run_job(Fragment1Settings,Fragment2Settings, ComplexSettings, inputArgues, inputArgues1, inputArgues2,  **kwargs)
+        result = self.run_job(
+            Fragment1Settings,
+            Fragment2Settings,
+            ComplexSettings,
+            inputArgues,
+            inputArgues1,
+            inputArgues2,
+            **kwargs,
+        )
         return result
 
         self.postrun()
-
-
 
     def generic2specific(self, settings, mol=None):
         """
@@ -382,14 +426,13 @@ class Package_pyfrag:
                     if v:
                         if isinstance(v, dict):
                             v = Settings(v)
-                        specific_from_generic_settings \
-                            .specific[self.pkg_name][key] = v
+                        specific_from_generic_settings.specific[self.pkg_name][key] = v
                     else:
-                        specific_from_generic_settings \
-                            .specific[self.pkg_name][key]
+                        specific_from_generic_settings.specific[self.pkg_name][key]
                 else:
                     self.handle_special_keywords(
-                        specific_from_generic_settings, k, v, mol)
+                        specific_from_generic_settings, k, v, mol
+                    )
         return settings.overlay(specific_from_generic_settings)
 
     def get_generic_dict(self):
@@ -423,8 +466,7 @@ class Package_pyfrag:
         raise NotImplementedError(msg)
 
 
-
-def run(job, runner=None, path=None, folder=None,  **kwargs):
+def run(job, runner=None, path=None, folder=None, **kwargs):
     """
     Pickup a runner and initialize it.
 
@@ -437,8 +479,12 @@ def run(job, runner=None, path=None, folder=None,  **kwargs):
     initialize = False
     try:
         builtins.config
-        if path and os.path.abspath(path) != builtins.config.jm.path or \
-                folder and folder != builtins.config.jm.folder:
+        if (
+            path
+            and os.path.abspath(path) != builtins.config.jm.path
+            or folder
+            and folder != builtins.config.jm.folder
+        ):
             msg = "Reinitializing Plams with new path and/or folder name.\n"
             warn(msg)
             plams.finish()
@@ -447,10 +493,10 @@ def run(job, runner=None, path=None, folder=None,  **kwargs):
         plams.init(path=path, folder=folder)
         initialize = True
     builtins.config.log.stdout = 0
-    builtins.config.jobmanager.jobfolder_exists = 'rename'
+    builtins.config.jobmanager.jobfolder_exists = "rename"
     if runner is None:
         ret = call_default(job, **kwargs)
-    elif runner.lower() == 'xenon':
+    elif runner.lower() == "xenon":
         ret = call_xenon(job, **kwargs)
     else:
         raise "Don't know runner: {}".format(runner)
@@ -459,44 +505,58 @@ def run(job, runner=None, path=None, folder=None,  **kwargs):
     return ret
 
 
-def call_default(job, n_processes=1 , cache='cache.json'):
+def call_default(job, n_processes=1, cache="cache.json"):
     """
     Run locally using several threads.
     """
 
     with NCDisplay() as display:
         return run_parallel_opt(
-            job, n_threads=n_processes,
-            registry=registry, jobdb_file=cache,
-            display=display)
+            job,
+            n_threads=n_processes,
+            registry=registry,
+            jobdb_file=cache,
+            display=display,
+        )
 
 
-#def call_xenon(job, n_processes=1, cache='cache.json', user_name=None, adapter='slurm',
+# def call_xenon(job, n_processes=1, cache='cache.json', user_name=None, adapter='slurm',
 #               queue_name=None, host_name=None, workdir=None, timeout=60000, **kwargs):
-def call_xenon(job, n_processes=1, cache='cache.json', user_name='x2sun', adapter='slurm',
-               queue_name=None, host_name='cartesius.surfsara.nl', workdir=None, timeout=60000, **kwargs):
+def call_xenon(
+    job,
+    n_processes=1,
+    cache="cache.json",
+    user_name="x2sun",
+    adapter="slurm",
+    queue_name=None,
+    host_name="cartesius.surfsara.nl",
+    workdir=None,
+    timeout=60000,
+    **kwargs
+):
     """
     See :
         https://github.com/NLeSC/Xenon-examples/raw/master/doc/tutorial/xenon-tutorial.pdf
     """
     dict_properties = {
-        'slurm': {'xenon.adaptors.slurm.ignore.version': 'true'},
-        'pbs': {'xenon.adaptors.pbs.ignore.version': 'true'}
+        "slurm": {"xenon.adaptors.slurm.ignore.version": "true"},
+        "pbs": {"xenon.adaptors.pbs.ignore.version": "true"},
     }
-    with XenonKeeper(log_level='DEBUG') as Xe:
+    with XenonKeeper(log_level="DEBUG") as Xe:
         certificate = Xe.credentials.newCertificateCredential(
-            'ssh', os.environ["HOME"] + '/.ssh/id_rsa', user_name, '', None)
+            "ssh", os.environ["HOME"] + "/.ssh/id_rsa", user_name, "", None
+        )
 
         xenon_config = XenonConfig(
             jobs_scheme=adapter,
             location=host_name,
             credential=certificate,
-            jobs_properties=dict_properties[adapter]
+            jobs_properties=dict_properties[adapter],
         )
         print(xenon_config.__dict__)
 
         if workdir is None:
-            workdir = '/home/' + user_name
+            workdir = "/home/" + user_name
 
         job_config = RemoteJobConfig(
             registry=registry,
@@ -504,18 +564,15 @@ def call_xenon(job, n_processes=1, cache='cache.json', user_name='x2sun', adapte
             finish=plams.finish,
             queue=queue_name,
             time_out=timeout,
-            working_dir=workdir
+            working_dir=workdir,
         )
 
         with NCDisplay() as display:
             result = run_xenon_prov(
-                job, Xe, cache, n_processes,
-                xenon_config, job_config, display=display)
+                job, Xe, cache, n_processes, xenon_config, job_config, display=display
+            )
 
     return result
-
-
-
 
 
 class SerMolecule(Serialiser):
@@ -523,6 +580,7 @@ class SerMolecule(Serialiser):
     Based on the Plams molecule this class encode and decode the
     information related to the molecule using the JSON format.
     """
+
     def __init__(self):
         super(SerMolecule, self).__init__(plams.Molecule)
 
@@ -538,14 +596,15 @@ class SerMol(Serialiser):
     Based on the RDKit molecule this class encodes and decodes the
     information related to the molecule using a string.
     """
+
     def __init__(self):
         super(SerMol, self).__init__(Chem.Mol)
 
     def encode(self, obj, make_rec):
-        return make_rec(base64.b64encode(obj.ToBinary()).decode('ascii'))
+        return make_rec(base64.b64encode(obj.ToBinary()).decode("ascii"))
 
     def decode(self, cls, data):
-        return Chem.Mol(base64.b64decode(data.encode('ascii')))
+        return Chem.Mol(base64.b64decode(data.encode("ascii")))
 
 
 class SerSettings(Serialiser):
@@ -580,23 +639,24 @@ def registry():
             plams.Molecule: SerMolecule(),
             Chem.Mol: SerMol(),
             Result: SerStorable(Result),
-            Settings: SerSettings()})
+            Settings: SerSettings(),
+        },
+    )
 
 
 def import_parser(ds, module_root="qmworks.parsers"):
     """
     Import parser for the corresponding property.
     """
-    module_sufix = ds['parser']
-    module_name = module_root + '.' + module_sufix
+    module_sufix = ds["parser"]
+    module_name = module_root + "." + module_sufix
 
     return importlib.import_module(module_name)
 
 
 def find_file_pattern(pat, folder):
     if folder is not None and os.path.exists(folder):
-        return map(lambda x: join(folder, x),
-                   fnmatch.filter(os.listdir(folder), pat))
+        return map(lambda x: join(folder, x), fnmatch.filter(os.listdir(folder), pat))
     else:
         return []
 
@@ -610,8 +670,7 @@ def ignored_unused_kwargs(fun: Callable, args: List, kwargs: Dict) -> Any:
     ps = inspect.signature(fun).parameters
 
     # Look for the arguments with the nonempty defaults.
-    defaults = list(filter(lambda t: t[1].default != inspect._empty,
-                           ps.items()))
+    defaults = list(filter(lambda t: t[1].default != inspect._empty, ps.items()))
     # there are not keyword arguments in the function
     if not kwargs or not defaults:
         return fun(*args)

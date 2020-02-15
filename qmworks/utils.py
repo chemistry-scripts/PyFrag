@@ -1,24 +1,34 @@
-
 __author__ = "Felipe Zapata"
 
-__all__ = ['chunksOf', 'concat', 'concatMap', 'dict2Setting',
-           'initialize', 'settings2Dict', 'Maybe', 'zipWith', 'zipWith3']
+__all__ = [
+    "chunksOf",
+    "concat",
+    "concatMap",
+    "dict2Setting",
+    "initialize",
+    "settings2Dict",
+    "Maybe",
+    "zipWith",
+    "zipWith3",
+]
 
 # ======================> Python Standard  and third-party <===================
-from functools import  wraps
+from functools import wraps
 from itertools import chain
-from pymonad   import curry
+from pymonad import curry
 
 import builtins
-#import plams
+
+# import plams
 from qmworks import plams
+
 # ======================> List Functions <========================
 
 
 def chunksOf(xs, n):
     """Yield successive n-sized chunks from xs"""
     for i in range(0, len(xs), n):
-        yield xs[i:i + n]
+        yield xs[i : i + n]
 
 
 def concat(xss):
@@ -47,7 +57,7 @@ def zipWith3(f, xs, ys, zs):
 
 
 # ================> Dict Functions
-from qmworks.settings   import Settings
+from qmworks.settings import Settings
 
 
 def settings2Dict(s):
@@ -83,6 +93,7 @@ class Maybe:
     Wrapper to allow formatted printing of variables that may contain either a value or None
     Example: print("{:10.2f}".format(Maybe(None))
     """
+
     def __init__(self, value):
         self.value = value
 
@@ -109,6 +120,7 @@ def initialize(fun):
     """
     Decorator to avoid calling plams.init method constantly
     """
+
     @wraps(fun)
     def wrapper(*args, **kwargs):
         try:
@@ -119,4 +131,5 @@ def initialize(fun):
         result = fun(*args, **kwargs)
         plams.finish()
         return result
+
     return wrapper

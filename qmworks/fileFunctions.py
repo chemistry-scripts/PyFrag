@@ -1,5 +1,4 @@
-
-__all__ = ['json2Settings']
+__all__ = ["json2Settings"]
 
 # ================> Python Standard  and third-party <=========================
 from qmworks.utils import dict2Setting

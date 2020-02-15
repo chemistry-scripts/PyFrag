@@ -1,7 +1,6 @@
+__all__ = ["Settings"]
 
-__all__ = ['Settings']
-
-#import plams
+# import plams
 from qmworks import plams
 
 from noodles import Storable
@@ -24,9 +23,9 @@ class Settings(plams.Settings, Storable):
         Like plams Settings.__getitem__, but
         "settings['a.b'] == 'c'" is equivalent to "settings['a']['b'] == 'c'"
         """
-        if isinstance(name, string_types) and name.find('.') > -1:
-            names = name.split('.')
-            return dict.__getitem__(self, names[0]).__getitem__('.'.join(names[1:]))
+        if isinstance(name, string_types) and name.find(".") > -1:
+            names = name.split(".")
+            return dict.__getitem__(self, names[0]).__getitem__(".".join(names[1:]))
         return dict.__getitem__(self, name)
 
     def __setitem__(self, name, value):
@@ -36,9 +35,9 @@ class Settings(plams.Settings, Storable):
         """
         if isinstance(value, dict):
             value = Settings(value)
-        if isinstance(name, string_types) and name.find('.') > -1:
-            names = name.split('.')
-            dict.__getitem__(self, names[0]).__setitem__('.'.join(names[1:]), value)
+        if isinstance(name, string_types) and name.find(".") > -1:
+            names = name.split(".")
+            dict.__getitem__(self, names[0]).__setitem__(".".join(names[1:]), value)
         else:
             dict.__setitem__(self, name, value)
 
@@ -47,9 +46,9 @@ class Settings(plams.Settings, Storable):
         Like plams Settings.__setitem__, but
         "del settings['a.b']" is equivalent to "del settings['a']['b'] = 'c'"
         """
-        if isinstance(name, string_types) and name.find('.') > -1:
-            names = name.split('.')
-            dict.__getitem__(self, names[0]).__delitem__('.'.join(names[1:]))
+        if isinstance(name, string_types) and name.find(".") > -1:
+            names = name.split(".")
+            dict.__getitem__(self, names[0]).__delitem__(".".join(names[1:]))
         else:
             dict.__delitem__(self, name)
 
@@ -109,10 +108,14 @@ class Settings(plams.Settings, Storable):
                     self[name] = other[name].copy()
                 else:
                     # __block_replace can be used to remove all existing key value pairs in an input block
-                    if ('__block_replace' in other[name] and other[name]['__block_replace'] == True) or \
-                        ('__block_replace' in self[name] and self[name]['__block_replace'] == True):
+                    if (
+                        "__block_replace" in other[name]
+                        and other[name]["__block_replace"] == True
+                    ) or (
+                        "__block_replace" in self[name]
+                        and self[name]["__block_replace"] == True
+                    ):
                         self[name] = Settings()
                     self[name].update(other[name])
             else:
                 self[name] = other[name]
-

@@ -1,8 +1,14 @@
-
 __author__ = "Felipe Zapata"
 
-__all__ = ['AtomBasisKey', 'AtomBasisData', 'AtomXYZ', 'CGF',
-           'InfoMO', 'InputKey', 'MO']
+__all__ = [
+    "AtomBasisKey",
+    "AtomBasisData",
+    "AtomXYZ",
+    "CGF",
+    "InfoMO",
+    "InputKey",
+    "MO",
+]
 
 
 # ================> Python Standard  and third-party <==========

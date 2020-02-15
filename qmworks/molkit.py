@@ -1,7 +1,14 @@
-
-__all__ = ['apply_reaction_smarts', 'apply_template', 'gen_coords_rdmol', 'modify_atom',
-           'to_rdmol', 'from_rdmol', 'from_sequence', 'from_smiles',
-           'write_molblock']
+__all__ = [
+    "apply_reaction_smarts",
+    "apply_template",
+    "gen_coords_rdmol",
+    "modify_atom",
+    "to_rdmol",
+    "from_rdmol",
+    "from_sequence",
+    "from_smiles",
+    "write_molblock",
+]
 
 """
 @author: Lars Ridder
@@ -12,7 +19,7 @@ This is a series of functions that apply RDKit functionality on PLAMS molecules
 
 from rdkit import Chem, Geometry
 from rdkit.Chem import AllChem
-from qmworks.plams import (Molecule, Bond, Atom)
+from qmworks.plams import Molecule, Bond, Atom
 import sys
 
 
@@ -27,8 +34,9 @@ def from_rdmol(rdkit_mol):
     for atom in rdkit_mol.GetAtoms():
         pos = conf.GetAtomPosition(atom.GetIdx())
         ch = atom.GetFormalCharge()
-        plams_mol.add_atom(Atom(atom.GetAtomicNum(),
-                                coords=(pos.x, pos.y, pos.z), charge=ch))
+        plams_mol.add_atom(
+            Atom(atom.GetAtomicNum(), coords=(pos.x, pos.y, pos.z), charge=ch)
+        )
         total_charge += ch
     for bond in rdkit_mol.GetBonds():
         at1 = plams_mol.atoms[bond.GetBeginAtomIdx()]
@@ -75,7 +83,7 @@ def from_smiles(smiles):
     """
     smiles = str(smiles.split()[0])
     molecule = Chem.AddHs(Chem.MolFromSmiles(smiles))
-    molecule.SetProp('smiles', smiles)
+    molecule.SetProp("smiles", smiles)
     AllChem.EmbedMolecule(molecule, randomSeed=1)
     AllChem.UFFOptimizeMolecule(molecule)
     return from_rdmol(molecule)
@@ -102,7 +110,7 @@ def modify_atom(mol, idx, element):
     else:
         e = Chem.EditableMol(rdmol)
         for neighbor in reversed(rdmol.GetAtomWithIdx(idx).GetNeighbors()):
-            if neighbor.GetSymbol() == 'H':
+            if neighbor.GetSymbol() == "H":
                 e.RemoveAtom(neighbor.GetIdx())
         e.ReplaceAtom(idx, Chem.Atom(element))
         newmol = e.GetMol()
@@ -125,17 +133,18 @@ def apply_reaction_smarts(mol, reaction_smarts, complete=False):
     """
     Applies reaction smirks and returns product
     """
+
     def react(reactant, reaction):
         """ Apply reaction to reactant and return products """
         ps = reaction.RunReactants([reactant])
         # if reaction doesn't apply, return the reactant
         if len(ps) == 0:
             return [(reactant, range(reactant.GetNumAtoms()))]
-        while complete: # when complete is True
+        while complete:  # when complete is True
             # apply reaction until no further changes
             reactant = ps[0][0]
             ps = reaction.RunReactants([reactant])
-            print('len:',len(ps))
+            print("len:", len(ps))
             if len(ps) == 0:
                 ps = [[reactant]]
                 break
@@ -145,7 +154,7 @@ def apply_reaction_smarts(mol, reaction_smarts, complete=False):
             Chem.SanitizeMol(p)
             q = Chem.AddHs(p)
             Chem.SanitizeMol(q)
-            u = gen_coords_rdmol(q) # These are the atoms that have not changed
+            u = gen_coords_rdmol(q)  # These are the atoms that have not changed
             products.append((q, u))
         return products
 
@@ -155,9 +164,9 @@ def apply_reaction_smarts(mol, reaction_smarts, complete=False):
     # RDKit removes fragments that are disconnected from the reaction center
     # In order to keep these, the molecule is first split in separate fragments
     # and the results, including non-reacting parts, are re-combined afterwards
-    frags = (Chem.GetMolFrags(mol, asMols=True))
+    frags = Chem.GetMolFrags(mol, asMols=True)
     product = Chem.Mol()
-    unchanged = [] # List of atoms that have not changed
+    unchanged = []  # List of atoms that have not changed
     for frag in frags:
         for p, u in react(frag, reaction):
             unchanged += [product.GetNumAtoms() + i for i in u]
@@ -190,8 +199,11 @@ def gen_coords_rdmol(rdmol):
     # Put known coordinates in coordDict
     for i in range(rdmol.GetNumAtoms()):
         pos = conf.GetAtomPosition(i)
-        if (-0.0001 < pos.x < 0.0001) and (-0.0001 < pos.y < 0.0001) and \
-           (-0.0001 < pos.z < 0.0001):
+        if (
+            (-0.0001 < pos.x < 0.0001)
+            and (-0.0001 < pos.y < 0.0001)
+            and (-0.0001 < pos.z < 0.0001)
+        ):
             continue  # atom without coordinates
         coordDict[i] = pos
         unchanged.append(i)
@@ -201,8 +213,9 @@ def gen_coords_rdmol(rdmol):
     rs = 1
     # repeat embedding and alignment until the rms of mapped atoms is sufficiently small
     while rms > 0.1:
-        AllChem.EmbedMolecule(rdmol, coordMap=coordDict, randomSeed=rs,
-                                    useBasicKnowledge=True)
+        AllChem.EmbedMolecule(
+            rdmol, coordMap=coordDict, randomSeed=rs, useBasicKnowledge=True
+        )
         # align new molecule to original coordinates
         rms = AllChem.AlignMol(rdmol, ref, atomMap=maps)
         rs += 1
@@ -220,7 +233,7 @@ def add_prot_Hs(rdmol):
     """
     retmol = Chem.AddHs(rdmol, addCoords=True)
     for atom in retmol.GetAtoms():
-        if atom.GetPDBResidueInfo() is None and atom.GetSymbol() == 'H':
+        if atom.GetPDBResidueInfo() is None and atom.GetSymbol() == "H":
             bond = atom.GetBonds()[0]
             if bond.GetBeginAtom().GetIdx() == atom.GetIdx:
                 connected_atom = bond.GetEndAtom()
@@ -230,13 +243,15 @@ def add_prot_Hs(rdmol):
                 ResInfo = connected_atom.GetPDBResidueInfo()
                 atom.SetMonomerInfo(ResInfo)
             except:
-                print('Hydrogen annotation failed:', connected_atom.GetIdx(),
-                      atom.GetIdx())
+                print(
+                    "Hydrogen annotation failed:",
+                    connected_atom.GetIdx(),
+                    atom.GetIdx(),
+                )
     return retmol
 
 
-def add_fragment(rwmol, frag, rwmol_atom_idx=None, frag_atom_idx=None,
-                 bond_order=None):
+def add_fragment(rwmol, frag, rwmol_atom_idx=None, frag_atom_idx=None, bond_order=None):
     molconf = rwmol.GetConformer()
     fragconf = frag.GetConformer()
     new_indices = []
@@ -249,8 +264,9 @@ def add_fragment(rwmol, frag, rwmol_atom_idx=None, frag_atom_idx=None,
         ea = b.GetEndAtomIdx()
         rwmol.AddBond(new_indices[ba], new_indices[ea], b.GetBondType())
     if bond_order:
-        rwmol.AddBond(rwmol_atom_idx, new_indices[frag_atom_idx],
-                      Chem.BondType.values[bond_order])
+        rwmol.AddBond(
+            rwmol_atom_idx, new_indices[frag_atom_idx], Chem.BondType.values[bond_order]
+        )
         rwmol.GetAtomWithIdx(new_indices[frag_atom_idx]).SetNumRadicalElectrons(0)
 
 
@@ -269,17 +285,16 @@ def get_fragment(mol, indices, incl_expl_Hs=True, neutralize=True):
         ba = b.GetBeginAtomIdx()
         ea = b.GetEndAtomIdx()
         if ba in indices and ea in indices:
-            fragment.AddBond(indices.index(ba), indices.index(ea),
-                             b.GetBondType())
+            fragment.AddBond(indices.index(ba), indices.index(ea), b.GetBondType())
             continue
         if not incl_expl_Hs:
             continue
-        if ba in indices and mol.GetAtomWithIdx(ea).GetSymbol() == 'H':
+        if ba in indices and mol.GetAtomWithIdx(ea).GetSymbol() == "H":
             hi = fragment.AddAtom(mol.GetAtomWithIdx(ea))
             fragconf.SetAtomPosition(hi, molconf.GetAtomPosition(ea))
             fragment.AddBond(indices.index(ba), hi, Chem.BondType.SINGLE)
             continue
-        if ea in indices and mol.GetAtomWithIdx(ba).GetSymbol() == 'H':
+        if ea in indices and mol.GetAtomWithIdx(ba).GetSymbol() == "H":
             hi = fragment.AddAtom(mol.GetAtomWithIdx(ba))
             fragconf.SetAtomPosition(hi, molconf.GetAtomPosition(ba))
             fragment.AddBond(indices.index(ea), hi, Chem.BondType.SINGLE)
@@ -300,25 +315,25 @@ def partition_protein(rdmol, cap=None):
     caps = []
     em = Chem.RWMol(rdmol)
     # Split peptide bonds
-    pept_bond = Chem.MolFromSmarts('[C;X4;H1,H2][CX3](=O)[NX3][C;X4;H1,H2][CX3](=O)')
+    pept_bond = Chem.MolFromSmarts("[C;X4;H1,H2][CX3](=O)[NX3][C;X4;H1,H2][CX3](=O)")
     for match in rdmol.GetSubstructMatches(pept_bond):
         cap = get_fragment(rdmol, match[0:5])
         cap = add_prot_Hs(cap)
         caps.append(cap)
-        cap_o_ind = cap.GetSubstructMatch(Chem.MolFromSmarts('[C;X4][CX3]=O'))
+        cap_o_ind = cap.GetSubstructMatch(Chem.MolFromSmarts("[C;X4][CX3]=O"))
         cap_o = get_fragment(cap, cap_o_ind, neutralize=False)
-        cap_n_ind = cap.GetSubstructMatch(Chem.MolFromSmarts('O=[CX3][NX3][C;X4]'))[2:]
+        cap_n_ind = cap.GetSubstructMatch(Chem.MolFromSmarts("O=[CX3][NX3][C;X4]"))[2:]
         cap_n = get_fragment(cap, cap_n_ind, neutralize=False)
         em.RemoveBond(match[1], match[3])
         add_fragment(em, cap_o, match[3], 1, 1)
         add_fragment(em, cap_n, match[1], 0, 1)
     # Split disulfide bonds
-    ss_bond = Chem.MolFromSmarts('[C;X4;H1,H2]SS[C;X4;H1,H2]')
+    ss_bond = Chem.MolFromSmarts("[C;X4;H1,H2]SS[C;X4;H1,H2]")
     for match in rdmol.GetSubstructMatches(ss_bond):
         cap = get_fragment(rdmol, match[0:5])
         cap = add_prot_Hs(cap)
         caps.append(cap)
-        cap_s_ind = cap.GetSubstructMatch(Chem.MolFromSmarts('[C;X4]SS[C;X4]'))
+        cap_s_ind = cap.GetSubstructMatch(Chem.MolFromSmarts("[C;X4]SS[C;X4]"))
         cap_s1 = get_fragment(cap, cap_s_ind[0:2], neutralize=False)
         cap_s2 = get_fragment(cap, cap_s_ind[2:4], neutralize=False)
         em.RemoveBond(match[1], match[2])

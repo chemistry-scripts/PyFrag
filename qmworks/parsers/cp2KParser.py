@@ -1,30 +1,50 @@
-
 __author__ = "Felipe Zapata"
 
-__all__ = ['readCp2KBasis', 'read_cp2k_coefficients', 'readCp2KOverlap',
-           'read_cp2k_number_of_orbitals']
+__all__ = [
+    "readCp2KBasis",
+    "read_cp2k_coefficients",
+    "readCp2KOverlap",
+    "read_cp2k_number_of_orbitals",
+]
 
 # ==================> Standard libraries and third-party <=====================
 from collections import namedtuple
 from itertools import islice
 from pymonad import curry
-from pyparsing import (alphanums, alphas, CaselessLiteral, Empty, FollowedBy,
-                       Group, Literal, nums, NotAny, oneOf, OneOrMore,
-                       Optional, restOfLine, srange, Suppress, Word)
+from pyparsing import (
+    alphanums,
+    alphas,
+    CaselessLiteral,
+    Empty,
+    FollowedBy,
+    Group,
+    Literal,
+    nums,
+    NotAny,
+    oneOf,
+    OneOrMore,
+    Optional,
+    restOfLine,
+    srange,
+    Suppress,
+    Word,
+)
 
 import fnmatch
 import numpy as np
 import os
 import re
 import subprocess
+
 # ==================> Internal modules <====================
-from qmworks.common import (AtomBasisData, AtomBasisKey, InfoMO)
-from qmworks.parsers.parser import (floatNumber, minusOrplus, natural, point)
-from qmworks.utils import (chunksOf, concat, zipWith, zipWith3)
+from qmworks.common import AtomBasisData, AtomBasisKey, InfoMO
+from qmworks.parsers.parser import floatNumber, minusOrplus, natural, point
+from qmworks.utils import chunksOf, concat, zipWith, zipWith3
 
 # =========================<>=============================
-MO_metadata = namedtuple("MO_metadata", ("added_mos", "nOccupied",
-                                         "nOrbitals", "nOrbFuns"))
+MO_metadata = namedtuple(
+    "MO_metadata", ("added_mos", "nOccupied", "nOrbitals", "nOrbFuns")
+)
 
 # =========================<>=============================
 # Molecular Orbitals Parsing
@@ -53,7 +73,7 @@ def read_cp2k_coefficients(path_mos, plams_dir=None):
 
     :returns: NamedTuple containing the Eigenvalues and the Coefficients
     """
-    file_out = fnmatch.filter(os.listdir(plams_dir), '*out')[0]
+    file_out = fnmatch.filter(os.listdir(plams_dir), "*out")[0]
     path_out = os.path.join(plams_dir, file_out)
     mo_metadata = read_cp2k_number_of_orbitals(path_out)
     nOrbFuns = mo_metadata.nOrbFuns
@@ -78,9 +98,10 @@ def readCp2KCoeff(path, nOrbitals, nOrbFuns):
     :type nOrbFuns: Int
     :returns: Molecular orbitals and orbital energies
     """
+
     def remove_trailing(xs):
         "Remove the last lines of the MOs output"
-        words = ['Fermi', 'HOMO-LUMO']
+        words = ["Fermi", "HOMO-LUMO"]
         if any([x in words for x in xs[-1]]):
             xs.pop(-1)
             return remove_trailing(xs)
@@ -88,13 +109,13 @@ def readCp2KCoeff(path, nOrbitals, nOrbFuns):
             return xs
 
     # Check if the Molecular orbitals came from a restart
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         xs = list(islice(f, 4))
-    if "AFTER SCF STEP -1" in ''.join(xs):
+    if "AFTER SCF STEP -1" in "".join(xs):
         move_restart_coeff(path)
 
     # Open the MO file
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         xss = f.readlines()
 
     # remove empty lines and comments
@@ -120,28 +141,32 @@ def readCp2KCoeff(path, nOrbitals, nOrbFuns):
         else:
             # rearrange the coeff
             css = np.transpose(convert_to_float(css))
-            eigenVals[j: j + 2] = es
+            eigenVals[j : j + 2] = es
             coefficients[:, j] = css[0]
             coefficients[:, j + 1] = css[1]
 
     return InfoMO(eigenVals, coefficients)
 
+
 # =====================> Orbital Parsers <===================
 
-xyz = oneOf(['x', 'y', 'z'])
+xyz = oneOf(["x", "y", "z"])
 
 orbS = Literal("s")
 
 orbP = Literal("p") + xyz
 
-orbD = Literal("d") + (Literal('0') |
-                       (minusOrplus + Word(srange("[1-2]"), max=1)) |
-                       (xyz + oneOf(['2', '3', 'y', 'z'])))
+orbD = Literal("d") + (
+    Literal("0")
+    | (minusOrplus + Word(srange("[1-2]"), max=1))
+    | (xyz + oneOf(["2", "3", "y", "z"]))
+)
 
-orbF = Literal("f") + (Literal('0') |
-                       (minusOrplus + Word(srange("[1-3]"), max=1)) |
-                       (xyz + oneOf(['2', '3', 'y', 'z']) +
-                        Optional(oneOf(['2', 'y', 'z']))))
+orbF = Literal("f") + (
+    Literal("0")
+    | (minusOrplus + Word(srange("[1-3]"), max=1))
+    | (xyz + oneOf(["2", "3", "y", "z"]) + Optional(oneOf(["2", "y", "z"])))
+)
 
 orbitals = Word(nums, max=1) + (orbS | orbP | orbD | orbF)
 
@@ -166,39 +191,49 @@ def funOrbNumber(x):
 
 headerOverlap = CaselessLiteral("OVERLAP MATRIX")
 
-topParserOverlap = Suppress(headerOverlap) + \
-    OneOrMore(Group(Suppress(funOrbNumber(4)) + funCoefficients(4)))
+topParserOverlap = Suppress(headerOverlap) + OneOrMore(
+    Group(Suppress(funOrbNumber(4)) + funCoefficients(4))
+)
 
 
 def oddParserOverlap(n):
     if n == 0:
         return Empty()
     else:
-        return Group((Suppress(funOrbNumber(n)) +
-                      funCoefficients(n)).setResultsName("lastCoeffs"))
+        return Group(
+            (Suppress(funOrbNumber(n)) + funCoefficients(n)).setResultsName(
+                "lastCoeffs"
+            )
+        )
+
 
 # ====================> Basis File <==========================
 comment = Literal("#") + restOfLine
 
-parseAtomLabel = (Word(srange("[A-Z]"), max=1) +
-                  Optional(Word(srange("[a-z]"), max=1)))
+parseAtomLabel = Word(srange("[A-Z]"), max=1) + Optional(Word(srange("[a-z]"), max=1))
 
 parserBasisName = Word(alphanums + "-") + Suppress(restOfLine)
 
 parserFormat = OneOrMore(natural + NotAny(FollowedBy(point)))
 
-parserKey = parseAtomLabel.setResultsName("atom") + \
-    parserBasisName.setResultsName("basisName") + \
-    Suppress(Literal("1"))
+parserKey = (
+    parseAtomLabel.setResultsName("atom")
+    + parserBasisName.setResultsName("basisName")
+    + Suppress(Literal("1"))
+)
 
 parserBasisData = OneOrMore(floatNumber)
 
-parserBasis = parserKey + parserFormat.setResultsName("format") + \
-    parserBasisData.setResultsName("coeffs")
+parserBasis = (
+    parserKey
+    + parserFormat.setResultsName("format")
+    + parserBasisData.setResultsName("coeffs")
+)
 
 
-topParseBasis = OneOrMore(Suppress(comment)) + \
-    OneOrMore(Group(parserBasis + Suppress(Optional(OneOrMore(comment)))))
+topParseBasis = OneOrMore(Suppress(comment)) + OneOrMore(
+    Group(parserBasis + Suppress(Optional(OneOrMore(comment))))
+)
 
 
 # ===============================<>====================================
@@ -210,7 +245,7 @@ def read_cp2k_number_of_orbitals(file_name):
     Look for the line ' Number of molecular orbitals:'
     """
     try:
-        with open(file_name, 'r') as f:
+        with open(file_name, "r") as f:
             for line in f:
                 if re.search("added MOs", line):
                     added_mos = line.split()[2]
@@ -221,14 +256,17 @@ def read_cp2k_number_of_orbitals(file_name):
                 if re.search("Number of orbital functions", line):
                     nOrbFuns = line.split()[-1]
                     break
-            return MO_metadata(*[int(x) for x in
-                                 [added_mos, nOccupied, nOrbitals, nOrbFuns]])
+            return MO_metadata(
+                *[int(x) for x in [added_mos, nOccupied, nOrbitals, nOrbFuns]]
+            )
     except NameError:
-        msg1 = 'There is a problem with the output file: \
-        {}\n'.format(file_name)
+        msg1 = "There is a problem with the output file: \
+        {}\n".format(
+            file_name
+        )
         raise RuntimeError(msg1)
     except FileNotFoundError:
-        msg2 = 'There is not a file: {}\n'.format(file_name)
+        msg2 = "There is not a file: {}\n".format(file_name)
         raise RuntimeError(msg2)
 
 
@@ -236,16 +274,16 @@ def read_cp2k_number_of_orbitals(file_name):
 def move_restart_coeff(path):
     root, file_name = os.path.split(path)
     # Current work directory
-    cwd = os.path.realpath('.')
+    cwd = os.path.realpath(".")
     # Change directory
     os.chdir(root)
     # Split File into the old and new set of coefficients
     cmd = 'csplit -f coeffs -n 1 {} "/HOMO-LUMO/+2"'.format(file_name)
     subprocess.call(cmd, shell=True)
     # Move the new set of coefficients to the Log file
-    os.rename('coeffs1', file_name)
+    os.rename("coeffs1", file_name)
     # Remove old set of coefficients
-    os.remove('coeffs0')
+    os.remove("coeffs0")
     # Return to CWD
     os.chdir(cwd)
 
@@ -274,19 +312,19 @@ def readCp2KBasis(path):
     :type path: String
     """
     bss = topParseBasis.parseFile(path)
-    atoms = [''.join(xs.atom[:]).lower() for xs in bss]
-    names = [' '.join(xs.basisName[:]).upper() for xs in bss]
+    atoms = ["".join(xs.atom[:]).lower() for xs in bss]
+    names = [" ".join(xs.basisName[:]).upper() for xs in bss]
     formats = [list(map(int, xs.format[:])) for xs in bss]
     # for example 2 0 3 7 3 3 2 1 there are sum(3 3 2 1) =9 Lists
     # of Coefficients + 1 lists of exponents
     nCoeffs = [int(sum(xs[4:]) + 1) for xs in formats]
-    rss = zipWith(swapCoeff2)(nCoeffs)(list(map(float, cs.coeffs[:]))
-                                       for cs in bss)
+    rss = zipWith(swapCoeff2)(nCoeffs)(list(map(float, cs.coeffs[:])) for cs in bss)
     tss = [headTail(xs) for xs in rss]
     basisData = [AtomBasisData(xs[0], xs[1]) for xs in tss]
     basiskey = zipWith3(AtomBasisKey)(atoms)(names)(formats)
 
     return (basiskey, basisData)
+
 
 # ============================<>=======================================
 # Auxiliar functions

@@ -1,8 +1,13 @@
-
-from qmworks.plams import (Atom, Molecule)
-from pyparsing import (alphanums, Group, OneOrMore, Word)
-from .parser import (floatNumber, parse_file, parse_section, skipLine,
-                     skipSupress, string_array_to_molecule)
+from qmworks.plams import Atom, Molecule
+from pyparsing import alphanums, Group, OneOrMore, Word
+from .parser import (
+    floatNumber,
+    parse_file,
+    parse_section,
+    skipLine,
+    skipSupress,
+    string_array_to_molecule,
+)
 from qmworks.utils import chunksOf
 from .xyzParser import manyXYZ
 
@@ -51,23 +56,23 @@ def parse_hessian(file_hess: str) -> Matrix:
     Read the hessian matrix in cartesian coordinates from the job_name.hess file.
     :returns: Numpy array
     """
-    start = '$hessian'
-    return read_blocks_from_file(start, '\n\n', file_hess)
+    start = "$hessian"
+    return read_blocks_from_file(start, "\n\n", file_hess)
 
 
 def parse_normal_modes(file_hess: str) -> Matrix:
     """
     Returns the normal modes from the job_name.hess file
     """
-    start = '$normal_modes'
-    return read_blocks_from_file(start, '\n\n', file_hess)
+    start = "$normal_modes"
+    return read_blocks_from_file(start, "\n\n", file_hess)
 
 
 def parse_frequencies(file_hess: str) -> Matrix:
     """
     Parse the vibrational frequencies from the job_name.hess file.
     """
-    p = parse_section('$vibrational_frequencies', '\n\n')
+    p = parse_section("$vibrational_frequencies", "\n\n")
     lines = parse_file(p, file_hess)[0].splitlines()
 
     return vectorize_float([x.split()[-1] for x in lines[1:]])
@@ -92,8 +97,7 @@ def read_blocks_from_file(start: str, end: str, file_name: str) -> Matrix:
     nblocks = nblocks if rest == 0 else nblocks + 1
 
     # a block start with a line header then the data
-    blocks = [read_block(block)
-              for block in chunksOf(lines, number_of_basis + 1)]
+    blocks = [read_block(block) for block in chunksOf(lines, number_of_basis + 1)]
 
     return np.concatenate(blocks, axis=1)
 

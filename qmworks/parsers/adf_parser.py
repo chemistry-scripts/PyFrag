@@ -1,6 +1,6 @@
-
 from qmworks.settings import Settings
-#import plams
+
+# import plams
 from qmworks import plams
 import numpy as np
 
@@ -20,10 +20,10 @@ def extract_properties_rkf(path_rkf, key=None):
     kf = plams.tools.kftools.KFFile(path_rkf).read
     props = Settings()
 
-    for i in range(kf('Properties', 'nEntries')):
-        typ = kf('Properties', 'Type(' + str(i + 1) + ')').strip()
-        subtype = kf('Properties', 'Subtype(' + str(i + 1) + ')').strip()
-        value = kf('Properties', 'Value(' + str(i + 1) + ')')
+    for i in range(kf("Properties", "nEntries")):
+        typ = kf("Properties", "Type(" + str(i + 1) + ")").strip()
+        subtype = kf("Properties", "Subtype(" + str(i + 1) + ")").strip()
+        value = kf("Properties", "Value(" + str(i + 1) + ")")
         props[typ][subtype] = value
     ret = props[key]
     if isinstance(ret, list):

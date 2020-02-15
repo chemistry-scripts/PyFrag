@@ -4,8 +4,14 @@ from os.path import join
 # ===============>
 
 
-def dump_to_hdf5(data, package_name, file_h5, project_name='workflow',
-                 job_name=None, property_to_dump='orbitals'):
+def dump_to_hdf5(
+    data,
+    package_name,
+    file_h5,
+    project_name="workflow",
+    job_name=None,
+    property_to_dump="orbitals",
+):
     """
     Store the result in HDF5 format.
 
@@ -19,7 +25,7 @@ def dump_to_hdf5(data, package_name, file_h5, project_name='workflow',
     """
     job_name = job_name if job_name is not None else "job"
     store_hdf5 = StoreasHDF5(file_h5, package_name)
-    if property_to_dump == 'orbitals':
+    if property_to_dump == "orbitals":
         es = join(package_name, "mo", "eigenvalues")
         css = join(package_name, "mo", "coefficients")
         pathEs = join(project_name, job_name, es)

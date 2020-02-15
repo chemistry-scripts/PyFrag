@@ -4,6 +4,7 @@ import glob
 import os
 import shutil
 import threading
+
 try:
     import dill as pickle
 except ImportError:
@@ -15,7 +16,8 @@ from .common import log
 from .errors import PlamsError
 from .basejob import MultiJob
 
-__all__ = ['JobManager']
+__all__ = ["JobManager"]
+
 
 class JobManager(object):
     """Class responsible for jobs and files management.
@@ -49,26 +51,29 @@ class JobManager(object):
         elif os.path.isdir(path):
             self.path = os.path.abspath(path)
         else:
-            raise PlamsError('Invalid path: %s'%path)
+            raise PlamsError("Invalid path: %s" % path)
 
         if folder is None:
-            basename = 'plams.' + str(os.getpid())
+            basename = "plams." + str(os.getpid())
             self.foldername = basename
             i = 1
             while os.path.exists(opj(self.path, self.foldername)):
-                self.foldername = basename + '_' + str(i)
+                self.foldername = basename + "_" + str(i)
                 i += 1
         else:
-            self.foldername = os.path.normpath(folder) #normpath removes trailing /
+            self.foldername = os.path.normpath(folder)  # normpath removes trailing /
 
         self.workdir = opj(self.path, self.foldername)
-        self.logfile = opj(self.workdir, self.foldername+'.log')
-        self.input = opj(self.workdir, self.foldername+'.inp')
+        self.logfile = opj(self.workdir, self.foldername + ".log")
+        self.input = opj(self.workdir, self.foldername + ".inp")
         if not os.path.exists(self.workdir):
             os.mkdir(self.workdir)
         else:
-            log('WARNING: Folder %s already exists. It is strongly advised to use a fresh folder for every run. If you experience problems check config.jobmanager.jobfolder_exists setting in plams_defaults.py' % self.workdir, 1)
-
+            log(
+                "WARNING: Folder %s already exists. It is strongly advised to use a fresh folder for every run. If you experience problems check config.jobmanager.jobfolder_exists setting in plams_defaults.py"
+                % self.workdir,
+                1,
+            )
 
     def _register_name(self, job):
         """Register the name of the *job*.
@@ -78,17 +83,20 @@ class JobManager(object):
 
         if job.name in self.names:
             self.names[job.name] += 1
-            newname = job.name +'.'+ str(self.names[job.name]).zfill(self.settings.counter_len)
-            log('Renaming job %s to %s' % (job.name,newname), 3)
+            newname = (
+                job.name
+                + "."
+                + str(self.names[job.name]).zfill(self.settings.counter_len)
+            )
+            log("Renaming job %s to %s" % (job.name, newname), 3)
             job.name = newname
         else:
             self.names[job.name] = 1
 
-
     def _register(self, job):
         """Register the *job*. Register job's name (rename if needed) and create the job folder."""
 
-        log('Registering job %s' % job.name, 7)
+        log("Registering job %s" % job.name, 7)
         job.jobmanager = self
 
         self._register_name(job)
@@ -99,23 +107,29 @@ class JobManager(object):
             else:
                 job.path = opj(self.workdir, job.name)
         if os.path.exists(job.path):
-            if self.settings.jobfolder_exists == 'remove':
+            if self.settings.jobfolder_exists == "remove":
                 shutil.rmtree(job.path)
-            elif self.settings.jobfolder_exists == 'rename':
+            elif self.settings.jobfolder_exists == "rename":
                 i = 1
-                while os.path.exists(job.path + '.old' + str(i)):
+                while os.path.exists(job.path + ".old" + str(i)):
                     i += 1
-                newname = job.path + '.old' + str(i)
+                newname = job.path + ".old" + str(i)
                 os.rename(job.path, newname)
-                log('Folder %s already present. Renaming it to %s'%(job.path, newname), 1)
+                log(
+                    "Folder %s already present. Renaming it to %s"
+                    % (job.path, newname),
+                    1,
+                )
             else:
-                raise PlamsError('Folder %s already present in the filesystem. Consider using a fresh working folder or adjusting config.jobmanager.jobfolder_exists'%job.path)
+                raise PlamsError(
+                    "Folder %s already present in the filesystem. Consider using a fresh working folder or adjusting config.jobmanager.jobfolder_exists"
+                    % job.path
+                )
         os.mkdir(job.path)
 
         self.jobs.append(job)
-        job.status = 'registered'
-        log('Job %s registered' % job.name, 7)
-
+        job.status = "registered"
+        log("Job %s registered" % job.name, 7)
 
     def _check_hash(self, job):
         """Calculate the hash of *job* and, if it is not ``None``, search previously run jobs for the same hash. If such a job is found, return it. Otherwise, return ``None``"""
@@ -123,12 +137,15 @@ class JobManager(object):
         if h is not None:
             if h in self.hashes:
                 prev = self.hashes[h]
-                log('Job %s previously run as %s, using old results' % (job.name, prev.name), 1)
+                log(
+                    "Job %s previously run as %s, using old results"
+                    % (job.name, prev.name),
+                    1,
+                )
                 return prev
             else:
                 self.hashes[h] = job
         return None
-
 
     def load_job(self, filename):
         """Load previously saved job from *filename*.
@@ -137,6 +154,7 @@ class JobManager(object):
 
         See :ref:`pickling` for details.
         """
+
         def setstate(job, path, parent=None):
             job.parent = parent
             job.jobmanager = self
@@ -155,7 +173,7 @@ class JobManager(object):
 
         filename = os.path.abspath(filename)
         path = os.path.dirname(filename)
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             job = pickle.load(f)
 
         setstate(job, path)
@@ -171,12 +189,11 @@ class JobManager(object):
         if h in self.hashes and self.hashes[h] == job:
             del self.hashes[h]
 
-
     def _clean(self):
         """Clean all registered jobs according to their ``save`` parameter in their ``settings``. If ``remove_empty_directories`` is ``True``,  traverse the working directory and delete all empty subdirectories.
         """
 
-        log('Cleaning job manager', 7)
+        log("Cleaning job manager", 7)
 
         for job in self.jobs:
             job.results._clean(job.settings.save)
@@ -188,5 +205,4 @@ class JobManager(object):
                     if not os.listdir(fullname):
                         os.rmdir(fullname)
 
-        log('Job manager cleaned', 7)
-
+        log("Job manager cleaned", 7)

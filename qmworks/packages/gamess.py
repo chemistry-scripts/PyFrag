@@ -1,11 +1,12 @@
 # =======>  Standard and third party Python Libraries <======
-from qmworks.packages.packages import (Package, package_properties, Result)
+from qmworks.packages.packages import Package, package_properties, Result
 from qmworks.settings import Settings
 from warnings import warn
 
 from qmworks import plams
+
 # ======================================<>=====================================
-__all__ = ['gamess']
+__all__ = ["gamess"]
 
 
 class GAMESS(Package):
@@ -17,15 +18,16 @@ class GAMESS(Package):
     This class is not intended to be called directly by the user, instead the
     **gamess** function should be called.
     """
+
     def __init__(self):
         super(GAMESS, self).__init__("gamess")
-        self.generic_dict_file = 'generic2gamess.json'
+        self.generic_dict_file = "generic2gamess.json"
 
     def prerun(self):
         pass
 
     @staticmethod
-    def run_job(settings, mol, job_name='gamess_job', work_dir=None):
+    def run_job(settings, mol, job_name="gamess_job", work_dir=None):
         """
         Call the Cp2K binary using plams interface.
 
@@ -41,13 +43,17 @@ class GAMESS(Package):
         """
         gamess_settings = Settings()
         gamess_settings.input = settings.specific.gamess
-        job = plams.GamessJob(molecule=mol, name=job_name,
-                              settings=gamess_settings)
+        job = plams.GamessJob(molecule=mol, name=job_name, settings=gamess_settings)
         r = job.run()
 
-        result = Gamess_Result(gamess_settings, mol, r.job.name,
-                               plams_dir=r.job.path, work_dir=work_dir,
-                               status=job.status)
+        result = Gamess_Result(
+            gamess_settings,
+            mol,
+            r.job.name,
+            plams_dir=r.job.path,
+            work_dir=work_dir,
+            status=job.status,
+        )
 
         return result
 
@@ -66,19 +72,33 @@ class GAMESS(Package):
         :param mol: molecular Geometry
         :type mol: plams Molecule
         """
-        warn('Keyword ' + key + ' doesn\'t exist')
+        warn("Keyword " + key + " doesn't exist")
 
 
 class Gamess_Result(Result):
     """
     Class providing access to CP2K result.
     """
-    def __init__(self, settings, molecule, job_name, plams_dir=None,
-                 work_dir=None, status='done',
-                 properties=package_properties['gamess']):
-        super().__init__(settings, molecule, job_name, plams_dir,
-                         work_dir=work_dir, properties=properties,
-                         status=status)
+
+    def __init__(
+        self,
+        settings,
+        molecule,
+        job_name,
+        plams_dir=None,
+        work_dir=None,
+        status="done",
+        properties=package_properties["gamess"],
+    ):
+        super().__init__(
+            settings,
+            molecule,
+            job_name,
+            plams_dir,
+            work_dir=work_dir,
+            properties=properties,
+            status=status,
+        )
 
     @classmethod
     def from_dict(cls, settings, molecule, job_name, archive, status):
@@ -96,9 +116,14 @@ class Gamess_Result(Result):
         """
         plams_dir = archive.get("plams_dir").path
         work_dir = archive.get("work_dir")
-        return Gamess_Result(settings, molecule, job_name,
-                             plams_dir=plams_dir, work_dir=work_dir,
-                             status=status)
+        return Gamess_Result(
+            settings,
+            molecule,
+            job_name,
+            plams_dir=plams_dir,
+            work_dir=work_dir,
+            status=status,
+        )
 
     def __getattr__(self, prop):
         """Returns a section of the results.

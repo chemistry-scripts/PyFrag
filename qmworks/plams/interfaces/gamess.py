@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 from functools import reduce
 
-from ..core.basejob  import SingleJob
+from ..core.basejob import SingleJob
 from ..core.settings import Settings
 
 
-__all__ = ['GamessJob']
+__all__ = ["GamessJob"]
 
 
 # ======================<>===========================
@@ -63,28 +63,33 @@ class GamessJob(SingleJob):
     j.settings.input.contrl.coord = 'zmt'
     j.settings.input.contrl.nzvar = 6
     """
-    _filenames = {'inp': '$JN.inp', 'run': ' $JN.run', 'out': '$JN.out',
-                  'err': '$JN.err'}
+
+    _filenames = {
+        "inp": "$JN.inp",
+        "run": " $JN.run",
+        "out": "$JN.out",
+        "err": "$JN.err",
+    }
 
     def get_input(self):
         """
         Transform all contents of ``input`` branch of ``settings`` into string
         with blocks, subblocks, keys and values.
         """
-        def parse(key, value, indent=''):
-            ret = ''
+
+        def parse(key, value, indent=""):
+            ret = ""
             if isinstance(value, Settings):
-                ret += ' ${} '.format(key)
+                ret += " ${} ".format(key)
                 for el in value:
-                    ret += ' {}={} '.format(el, value[el])
-                ret += '$end\n'
+                    ret += " {}={} ".format(el, value[el])
+                ret += "$end\n"
             else:
-                ret += ' ${}\n{}\n $end\n'.format(key, value)
+                ret += " ${}\n{}\n $end\n".format(key, value)
 
             return ret
 
-        inp = [parse(item, self.settings.input[item])
-               for item in self.settings.input]
+        inp = [parse(item, self.settings.input[item]) for item in self.settings.input]
 
         return self.print_molecule() + reduce(lambda x, y: x + y, inp)
 
@@ -95,26 +100,27 @@ class GamessJob(SingleJob):
         mol = self.molecule
         if mol:
             # Read Symmetry from properties otherwise use C1
-            if 'symmetry' in mol.properties.keys():
-                sym = mol.properties['symmetry']
+            if "symmetry" in mol.properties.keys():
+                sym = mol.properties["symmetry"]
             else:
-                sym = 'C1'
-            if sym != 'C1':
-                sym += '\n'
-            ret = ' $data\ntitle\n{}\n'.format(sym)
+                sym = "C1"
+            if sym != "C1":
+                sym += "\n"
+            ret = " $data\ntitle\n{}\n".format(sym)
             for at in mol.atoms:
-                ret += "{} {}   {}\n".format(at.symbol, at.atnum,
-                                             at.str(symbol=False, space=14, decimal=10))
+                ret += "{} {}   {}\n".format(
+                    at.symbol, at.atnum, at.str(symbol=False, space=14, decimal=10)
+                )
             ret += " $end\n"
             return ret
         else:
-            return '\n'
+            return "\n"
 
     def get_runscript(self):
         """
         Run Gamess Using rungms.
         """
-        return  'rungms {} > {}'.format(self._filename('inp'), self._filename('out'))
+        return "rungms {} > {}".format(self._filename("inp"), self._filename("out"))
 
     def check(self):
         """
